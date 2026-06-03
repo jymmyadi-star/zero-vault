@@ -1,0 +1,92 @@
+# Chrome Web Store Listing
+
+## Title (max 132 chars)
+Zero Vault — Zero-Knowledge Password Manager
+
+## Short description (max 132 chars)
+Encrypted, offline-first password manager with autofill. XChaCha20-Poly1305. No plaintext ever leaves your device.
+
+## Description (max 16,000 chars)
+
+Zero Vault is a zero-knowledge password manager built for security above all else.
+
+---CORE FEATURES---
+
+**True Zero-Knowledge Architecture**
+Your data is encrypted with XChaCha20-Poly1305 before leaving your device. The server receives only ciphertext. We cannot read your passwords — ever.
+
+**Offline-First**
+Your vault works completely offline. No server required. All decryption happens locally on your machine. Sync is optional and can be enabled when you need cross-device access.
+
+**Military-Grade Cryptography**
+- XChaCha20-Poly1305 authenticated encryption (superior to AES-GCM for nonce safety)
+- Argon2id key derivation (128MB / 6 passes) for brute-force resistance
+- HKDF-SHA256 sub-key derivation
+- HMAC-SHA256 hash chain for sync integrity verification
+- SQLCipher AES-256 local database encryption
+
+**Autofill on Every Website**
+The content script automatically detects login forms and offers to fill credentials with one click. No manual copy-paste. Your clipboard is auto-cleared after 30 seconds.
+
+**Cross-Device Sync**
+End-to-end encrypted sync via a lightweight API server. Hash chain verification ensures data integrity. Anonymous authentication supported. WebSocket push for instant updates.
+
+**Full Vault Management**
+- Search across all items
+- Copy username/password with one click
+- Auto-lock after idle timeout
+- Vault locking with memory wipe
+
+**Privacy by Design**
+- No analytics, no tracking, no telemetry
+- GDPR compliant (DPIA, ROPA, right to erasure)
+- Consent management built-in
+- Open-source cryptographic stack
+
+---TECHNICAL SPECIFICATIONS---
+
+- Encryption: XChaCha20-Poly1305
+- Key Derivation: Argon2id (128MB, 6 passes, 4 parallelism)
+- Database: SQLCipher AES-256
+- Sync Integrity: HMAC-SHA256 hash chain
+- Protocol: REST + WebSocket
+- Format: Manifest V3
+
+---SUPPORTED ITEM TYPES---
+
+- Passwords (with TOTP 2FA codes)
+- Seed phrases (BIP39 recovery)
+- Secure notes
+
+---GETTING STARTED---
+
+1. Install the extension
+2. Click the Zero Vault icon
+3. Sign in anonymously
+4. Create a new vault or enter your recovery phrase
+5. Your vault syncs automatically
+
+---SUPPORT---
+
+For issues or feature requests, visit our GitHub repository.
+
+---PRIVACY---
+
+We collect zero data. Zero. Nil. The server stores only encrypted blobs it cannot decrypt. Read our full privacy policy in the extension.
+
+---
+
+## Category
+Productivity
+
+## Language
+English (United States)
+
+## Website
+https://github.com/yourusername/zero-vault
+
+## Screenshot captions
+1. "Vault popup — search and copy credentials"
+2. "Autofill on login forms — one click"
+3. "Vault locked — secure by default"
+4. "Recovery phrase setup"

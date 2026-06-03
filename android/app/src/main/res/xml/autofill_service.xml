@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<autofill-service
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:settingsActivity="com.zerovault.app.MainActivity"
+    android:supportsInlineSuggestions="true"
+    android:passwordToggleDrawable="@drawable/ic_launcher_foreground" />

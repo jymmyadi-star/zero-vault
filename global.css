@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --vault-bg: #09090b;
+  --vault-surface: #18181b;
+  --vault-border: #27272a;
+  --vault-muted: #52525b;
+  --vault-accent: #a78bfa;
+  --vault-danger: #f87171;
+  --vault-success: #34d399;
+}

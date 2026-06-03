@@ -1,0 +1,88 @@
+# Google Play Store Listing
+
+## Title (50 chars)
+Zero Vault — Zero-Knowledge Password Manager
+
+## Short description (80 chars)
+Encrypted password manager. XChaCha20-Poly1305. Offline-first. Autofill. No tracking.
+
+## Full description (4000 chars)
+
+Zero Vault is a zero-knowledge password manager that puts your security first.
+
+**WHY ZERO VAULT**
+
+Most password managers decrypt your data on their servers. Zero Vault never does. Your master PIN and recovery phrase are the ONLY keys to your vault. If you lose them, nobody — not even us — can recover your data. This is zero-knowledge: the server sees only encrypted blobs.
+
+**MILITARY-GRADE ENCRYPTION**
+
+- XChaCha20-Poly1305 authenticated encryption — superior to AES-GCM
+- Argon2id key derivation with 128MB memory hardness and 6 passes
+- HKDF-SHA256 sub-key derivation
+- HMAC-SHA256 hash chain for sync integrity
+- SQLCipher AES-256 local database
+- All keys zeroed from memory after use
+
+**OFFLINE-FIRST**
+
+Your vault works without any server. All encryption and decryption happens locally on your device. Enable cloud sync only when you need cross-device access.
+
+**ANDROID AUTOFILL**
+
+Fill passwords in any app or browser with Android's native Autofill Framework. Automatic detection of login fields. No accessibility services — the secure API.
+
+**PRIVACY BY DEFAULT**
+
+- No analytics SDK
+- No crash reporters that send data
+- No advertising
+- No third-party libraries that make network calls
+- GDPR compliant with full documentation
+- Right to erasure built into settings
+
+**FEATURES**
+
+- Password management with TOTP 2FA live codes
+- Seed phrase storage (BIP39 recovery phrases)
+- Secure notes
+- Biometric unlock
+- Cross-device sync with hash chain integrity
+- Auto-lock after idle timeout
+- Clipboard auto-clear after 30s
+- Import from Bitwarden, 1Password, Chrome, CSV
+
+**OPEN SOURCE**
+
+The entire codebase is open source. Cryptographic primitives use well-audited libraries (noble-ciphers, noble-hashes). No proprietary encryption.
+
+**WARNING**
+
+Zero Vault is true zero-knowledge. If you forget your Master PIN and lose your 24-word recovery phrase, YOUR DATA IS GONE FOREVER. There is no password reset, no email recovery, no backdoor. Write down your recovery phrase on paper and keep it safe.
+
+---
+
+## Category
+Productivity
+
+## Tags
+password manager, security, encryption, privacy, autofill
+
+## Content rating
+Everyone
+
+## Privacy policy URL
+https://github.com/yourusername/zero-vault/blob/main/docs/privacy-policy.md
+
+## Website
+https://github.com/yourusername/zero-vault
+
+## Feature graphic (1024x500)
+Show: dark cyberpunk UI with vault rings, PIN dots, and the text "ZERO VAULT — Zero-Knowledge Password Manager"
+
+## Screenshots (min 2, max 8)
+1. Dashboard with vault rings
+2. Password detail with TOTP code
+3. Autofill in browser
+4. Recovery phrase setup
+5. Settings with sync toggle
+6. Import vault screen

@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.expo
+android/build
+android/app/build
+android/.gradle
+browser-extension/dist
+browser-extension/node_modules
+scratch
+.env
+.env.production
+*.log
+.DS_Store
+Thumbs.db
