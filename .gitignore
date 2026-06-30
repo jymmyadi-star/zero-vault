@@ -10,10 +10,7 @@ dist/
 web-build/
 .env
 nativewind-env.d.ts
-server/
 supabase/
-docker-compose.yml
-Dockerfile
 ecosystem.config.cjs
 scratch/
 audit/
