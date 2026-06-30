@@ -60,8 +60,8 @@ describe('vault-keychain', () => {
   describe('createVault', () => {
     it('creates vault and returns keyset + mnemonic', async () => {
       const result = await createVault(TEST_PIN);
-      expect(result.keySet.vaultKeyHex).toBeTruthy();
-      expect(result.keySet.vaultKeyHex.length).toBe(64); // 32 bytes hex
+      expect(result.keySet.vaultKey.toHex()).toBeTruthy();
+      expect(result.keySet.vaultKey.toHex().length).toBe(64); // 32 bytes hex
       expect(result.keySet.cipherKey).toBeInstanceOf(SecureBuffer);
       expect(result.keySet.signKey).toBeInstanceOf(SecureBuffer);
       expect(result.keySet.cipherKey.length).toBe(32);
@@ -72,7 +72,7 @@ describe('vault-keychain', () => {
     it('generates unique vaults', async () => {
       const r1 = await createVault(TEST_PIN);
       const r2 = await createVault(TEST_PIN);
-      expect(r1.keySet.vaultKeyHex).not.toBe(r2.keySet.vaultKeyHex);
+      expect(r1.keySet.vaultKey.toHex()).not.toBe(r2.keySet.vaultKey.toHex());
       expect(r1.mnemonic).not.toBe(r2.mnemonic);
     });
 
@@ -96,7 +96,7 @@ describe('vault-keychain', () => {
       const created = await createVault(TEST_PIN);
       const keySet = await unlockVault(TEST_PIN);
       expect(keySet).not.toBeNull();
-      expect(keySet!.vaultKeyHex).toBe(created.keySet.vaultKeyHex);
+      expect(keySet!.vaultKey.toHex()).toBe(created.keySet.vaultKey.toHex());
       expect(keySet!.cipherKey).toBeInstanceOf(SecureBuffer);
       expect(keySet!.signKey).toBeInstanceOf(SecureBuffer);
     });
@@ -156,7 +156,7 @@ describe('vault-keychain', () => {
       // Simulate fresh device: clear store, import seed
       store.clear();
       const keySet = await importVaultSeed(TEST_PIN, seed);
-      expect(keySet.vaultKeyHex).toBeTruthy();
+      expect(keySet.vaultKey.toHex()).toBeTruthy();
       expect(keySet.cipherKey).toBeInstanceOf(SecureBuffer);
     });
 
@@ -172,7 +172,7 @@ describe('vault-keychain', () => {
     it('recovers with mnemonic and new PIN', async () => {
       const created = await createVault(TEST_PIN);
       const recovered = await recoverWithMnemonic(created.mnemonic, TEST_PIN2);
-      expect(recovered.vaultKeyHex).toBe(created.keySet.vaultKeyHex);
+      expect(recovered.vaultKey.toHex()).toBe(created.keySet.vaultKey.toHex());
       expect(recovered.cipherKey).toBeInstanceOf(SecureBuffer);
     });
 
@@ -180,7 +180,7 @@ describe('vault-keychain', () => {
       const created = await createVault(TEST_PIN);
       await recoverWithMnemonic(created.mnemonic, TEST_PIN2);
       const keySet = await unlockVault(TEST_PIN2);
-      expect(keySet!.vaultKeyHex).toBe(created.keySet.vaultKeyHex);
+      expect(keySet!.vaultKey.toHex()).toBe(created.keySet.vaultKey.toHex());
     });
 
     it('rejects invalid mnemonic', async () => {

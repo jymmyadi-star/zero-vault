@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
@@ -141,7 +141,6 @@ export default function CreateSeedScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       {/* Cyber Grid & Ambient Glows */}
       <View style={styles.gridOverlay}>
@@ -314,7 +313,7 @@ export default function CreateSeedScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204' 
+    backgroundColor: 'transparent' 
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

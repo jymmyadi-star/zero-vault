@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+﻿import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -48,7 +48,7 @@ const QuickActions = () => {
   );
 };
 
-// ─── MAIN SCREEN ───
+// â”€â”€â”€ MAIN SCREEN â”€â”€â”€
 
 export default function DashboardScreen() {
   const { lock } = useVaultStore();
@@ -92,7 +92,6 @@ export default function DashboardScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       {/* Cyber Grid & Ambient Glows */}
       <View style={styles.gridOverlay}>
@@ -100,7 +99,7 @@ export default function DashboardScreen() {
       </View>
       <View style={styles.ambientGlow} />
 
-      {/* ─── FLOATING HUD HEADER ─── */}
+      {/* â”€â”€â”€ FLOATING HUD HEADER â”€â”€â”€ */}
       <View style={[styles.headerContainer, { top: safeTop }]}>
         <BlurView intensity={80} tint="dark" style={styles.headerBlur}>
           <View style={styles.headerContent}>
@@ -137,7 +136,7 @@ export default function DashboardScreen() {
         </BlurView>
       </View>
 
-      {/* ─── FLUID SCROLL VIEW ─── */}
+      {/* â”€â”€â”€ FLUID SCROLL VIEW â”€â”€â”€ */}
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={[styles.scrollContent, { paddingTop: safeTop + 94, paddingBottom: 130 }]}
@@ -186,7 +185,7 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        {/* ─── SECURITY INTEGRITY STATUS ─── */}
+        {/* â”€â”€â”€ SECURITY INTEGRITY STATUS â”€â”€â”€ */}
         <View style={[styles.section, { marginTop: 28 }]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>[ ENCLAVE DIAGNOSTICS ]</Text>
@@ -221,7 +220,7 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* ─── SECURITY GUIDE & COMPILATION ADVICE ─── */}
+        {/* â”€â”€â”€ SECURITY GUIDE & COMPILATION ADVICE â”€â”€â”€ */}
         <View style={[styles.section, { marginTop: 28, marginBottom: 20 }]}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>[ SECURITY MANIFESTO ]</Text>
@@ -273,7 +272,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204',
+    backgroundColor: 'transparent',
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

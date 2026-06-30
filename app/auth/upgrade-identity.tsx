@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
@@ -83,7 +83,6 @@ export default function UpgradeIdentityScreen() {
   if (needsVerification) {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
         <View style={styles.gridOverlay}>
           <LinearGradient colors={['rgba(191, 90, 242, 0.015)', 'transparent']} style={StyleSheet.absoluteFillObject} />
@@ -125,7 +124,6 @@ export default function UpgradeIdentityScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       <View style={styles.gridOverlay}>
         <LinearGradient colors={['rgba(191, 90, 242, 0.015)', 'transparent']} style={StyleSheet.absoluteFillObject} />
@@ -216,7 +214,7 @@ export default function UpgradeIdentityScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204' 
+    backgroundColor: 'transparent' 
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -7,6 +7,7 @@ export type SyncStatus = 'idle' | 'syncing' | 'secured' | 'error' | 'offline';
 
 interface VaultState {
   status: VaultStatus;
+  vaultKey: SecureBuffer | null;
   cipherKey: SecureBuffer | null;
   signKey: SecureBuffer | null;
   isOffline: boolean;
@@ -25,6 +26,7 @@ interface VaultState {
 
 export const useVaultStore = create<VaultState>((set) => ({
   status: 'loading',
+  vaultKey: null,
   cipherKey: null,
   signKey: null,
   isOffline: false,
@@ -37,6 +39,7 @@ export const useVaultStore = create<VaultState>((set) => ({
   unlock: (keySet) => {
     set({
       status: 'unlocked',
+      vaultKey: keySet.vaultKey,
       cipherKey: keySet.cipherKey,
       signKey: keySet.signKey,
     });
@@ -44,10 +47,12 @@ export const useVaultStore = create<VaultState>((set) => ({
 
   lock: () => {
     const state = useVaultStore.getState();
+    if (state.vaultKey) state.vaultKey.dispose();
     if (state.cipherKey) state.cipherKey.dispose();
     if (state.signKey) state.signKey.dispose();
     set({
       status: 'locked',
+      vaultKey: null,
       cipherKey: null,
       signKey: null,
       syncEnabled: false,

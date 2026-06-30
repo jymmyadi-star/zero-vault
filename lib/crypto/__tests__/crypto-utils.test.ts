@@ -45,7 +45,8 @@ describe('wrapKey / unwrapKey', () => {
     const wrappingKey = randomBytes(32);
     const wrapped = wrapKey(key, wrappingKey);
     expect(wrapped.iv.length).toBe(24);
-    expect(wrapped.ciphertext.length).toBe(48); // 32 key + 16 Poly1305 tag
+    expect(wrapped.ciphertext.length).toBe(32);
+    expect(wrapped.tag.length).toBe(16); // Poly1305 tag stored separately
     const unwrapped = unwrapKey(wrapped, wrappingKey);
     expect(unwrapped).toEqual(key);
   });

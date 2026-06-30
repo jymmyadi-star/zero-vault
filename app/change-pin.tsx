@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
@@ -34,7 +34,7 @@ export default function ChangePinScreen() {
   const handleVerify = async () => {
     if (!currentPin || currentPin.length < 8) {
       hapticWarning();
-      Alert.alert('Invalid PIN', 'Please enter your current Master PIN (minimum 8 digits).');
+      Alert.alert('Invalid Password', 'Please enter your current Master Password (minimum 8 characters).');
       return;
     }
     setIsLoading(true);
@@ -46,7 +46,7 @@ export default function ChangePinScreen() {
         setStep('change');
       } else {
         hapticWarning();
-        Alert.alert('Incorrect PIN', 'The Master PIN entered does not match system logs.');
+        Alert.alert('Incorrect Password', 'The Master Password entered does not match system logs.');
       }
     } catch (e: any) {
       Alert.alert('Authentication Error', e.message);
@@ -58,7 +58,7 @@ export default function ChangePinScreen() {
   const handleChange = async () => {
     if (!newPin || newPin.length < 8) {
       hapticWarning();
-      Alert.alert('Invalid PIN', 'New Master PIN must be at least 8 digits.');
+      Alert.alert('Invalid Password', 'New Master Password must be at least 8 characters.');
       return;
     }
     if (newPin !== confirmPin) {
@@ -68,7 +68,7 @@ export default function ChangePinScreen() {
     }
     if (newPin === currentPin) {
       hapticWarning();
-      Alert.alert('No Change', 'New PIN must be different from your current PIN.');
+      Alert.alert('No Change', 'New Password must be different from your current Password.');
       return;
     }
 
@@ -78,14 +78,14 @@ export default function ChangePinScreen() {
       if (keySet) {
         await hapticSuccess();
         unlockStore(keySet);
-        Alert.alert('PIN Updated', 'Your cryptographic Master PIN has been updated successfully.', [
+        Alert.alert('Password Updated', 'Your cryptographic Master Password has been updated successfully.', [
           { text: 'Acknowledge', onPress: () => router.back() },
         ]);
       } else {
-        Alert.alert('Failed', 'System could not update Master PIN.');
+        Alert.alert('Failed', 'System could not update Master Password.');
       }
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'PIN alteration failed.');
+      Alert.alert('Error', e.message || 'Password alteration failed.');
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +93,6 @@ export default function ChangePinScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       {/* Cyber Grid & Ambient Glows */}
       <View style={styles.gridOverlay}>
@@ -127,16 +126,16 @@ export default function ChangePinScreen() {
               </View>
 
               <Text style={styles.sectionSubtitle}>
-                Verification of the current Master PIN is required before modifying security parameters.
+                Verification of the current Master Password is required before modifying security parameters.
               </Text>
 
               <InputPod
-                label="Current Master PIN"
+                label="Current Master Password"
                 icon="lock-closed-outline"
-                placeholder="Enter current 6+ digit PIN"
+                placeholder="Enter current password (min 8 chars)"
                 value={currentPin}
                 onChangeText={setCurrentPin}
-                keyboardType="number-pad"
+                keyboardType="default"
                 secureTextEntry
               />
 
@@ -159,26 +158,26 @@ export default function ChangePinScreen() {
               </View>
 
               <Text style={styles.sectionSubtitle}>
-                Configure a new secure Master PIN. This PIN derives the AES-256 keys. Do not forget it.
+                Configure a new secure Master Password. This password derives the AES-256 keys. Do not forget it.
               </Text>
 
               <InputPod
-                label="New Master PIN"
+                label="New Master Password"
                 icon="key-outline"
-                placeholder="Enter new 6+ digit PIN"
+                placeholder="Enter new password (min 8 chars)"
                 value={newPin}
                 onChangeText={setNewPin}
-                keyboardType="number-pad"
+                keyboardType="default"
                 secureTextEntry
               />
 
               <InputPod
-                label="Confirm Master PIN"
+                label="Confirm Master Password"
                 icon="checkmark-circle-outline"
-                placeholder="Re-enter new PIN"
+                placeholder="Re-enter new password"
                 value={confirmPin}
                 onChangeText={setConfirmPin}
-                keyboardType="number-pad"
+                keyboardType="default"
                 secureTextEntry
               />
 
@@ -189,7 +188,7 @@ export default function ChangePinScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.saveNodeText, { color: '#FFFFFF' }]}>
-                  {isLoading ? 'UPDATING...' : 'COMMIT NEW PIN'}
+                  {isLoading ? 'UPDATING...' : 'COMMIT NEW PASSWORD'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -203,7 +202,7 @@ export default function ChangePinScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204' 
+    backgroundColor: 'transparent' 
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

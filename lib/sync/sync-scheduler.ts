@@ -52,8 +52,7 @@ export function startSyncScheduler(): void {
 
   pullTimer = setInterval(() => {
     if (getIsOnline()) {
-      pullChanges().catch(() => {});
-      drainBacklog().catch(() => {});
+      throttledPull();
     }
   }, PULL_INTERVAL_MS);
 

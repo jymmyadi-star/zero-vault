@@ -46,19 +46,23 @@ function concatUint8Arrays(a: Uint8Array, b: Uint8Array): Uint8Array {
   return result;
 }
 
+const POLY1305_TAG_LENGTH = 16;
+
 export function wrapKey(key: Uint8Array, wrappingKey: Uint8Array): WrappedKey {
   const iv = randomBytes(24);
   const aad = new Uint8Array(0);
   const cipher = xchacha20poly1305(wrappingKey, iv, aad);
-  const ciphertext = cipher.encrypt(key);
-  const tag = new Uint8Array(0);
+  const encrypted = cipher.encrypt(key);
+  const ciphertext = encrypted.slice(0, -POLY1305_TAG_LENGTH);
+  const tag = encrypted.slice(-POLY1305_TAG_LENGTH);
   return { iv, ciphertext, tag };
 }
 
 export function unwrapKey(wrapped: WrappedKey, wrappingKey: Uint8Array): Uint8Array {
   const aad = new Uint8Array(0);
   const cipher = xchacha20poly1305(wrappingKey, wrapped.iv, aad);
-  return cipher.decrypt(wrapped.ciphertext);
+  const combined = concatUint8Arrays(wrapped.ciphertext, wrapped.tag);
+  return cipher.decrypt(combined);
 }
 
 export function serializeWrappedKey(wk: WrappedKey): string {
@@ -90,12 +94,14 @@ export function encryptPayload(
   const plaintextBytes = new TextEncoder().encode(plaintext);
   const cipher = xchacha20poly1305(key, iv, aadBytes);
   const encrypted = cipher.encrypt(plaintextBytes);
+  const ct = encrypted.slice(0, -POLY1305_TAG_LENGTH);
+  const tag = encrypted.slice(-POLY1305_TAG_LENGTH);
   return {
     v: 1,
     alg: 'xchacha20-poly1305',
     iv: bytesToHex(iv),
-    ct: bytesToHex(encrypted),
-    tag: bytesToHex(new Uint8Array(0)),
+    ct: bytesToHex(ct),
+    tag: bytesToHex(tag),
     aad,
   };
 }
@@ -106,10 +112,13 @@ export function decryptPayload(
 ): Record<string, unknown> {
   const iv = hexToBytes(envelope.iv);
   const ct = hexToBytes(envelope.ct);
+  const tag = hexToBytes(envelope.tag);
   const aadBytes = new TextEncoder().encode(envelope.aad);
   const cipher = xchacha20poly1305(key, iv, aadBytes);
-  const decrypted = cipher.decrypt(ct);
+  const combined = concatUint8Arrays(ct, tag);
+  const decrypted = cipher.decrypt(combined);
   const plaintext = new TextDecoder().decode(decrypted);
+  decrypted.fill(0);
   return JSON.parse(plaintext);
 }
 
@@ -126,7 +135,8 @@ export function computeSyncSignature(
 
 export function deriveSignKey(masterKey: Uint8Array): Uint8Array {
   const info = new TextEncoder().encode('zerovault-sync-sign-v1');
-  return hkdf(sha256, masterKey, new Uint8Array(0), info, 32);
+  const salt = sha256(new TextEncoder().encode('zerovault-sign-salt-v1'));
+  return hkdf(sha256, masterKey, salt, info, 32);
 }
 
 export async function deriveWithArgon2(
@@ -156,8 +166,9 @@ export async function deriveWithArgon2(
       raw: true,
     });
     return new Uint8Array(result);
-  } catch {
-    return deriveWithPBKDF2(password, salt, 150000, hashLength);
+  } catch (err) {
+    const fbErr = err instanceof Error ? err.message : String(err);
+    throw new Error(`ARGON2_UNAVAILABLE: Argon2id is required for vault key derivation but could not be loaded. Reason: ${fbErr}. Ensure 'argon2' is installed and the native module is linked.`);
   }
 }
 
@@ -172,12 +183,30 @@ export function deriveWithPBKDF2(
 }
 
 export function timingSafeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
   let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
+  const minLen = Math.min(a.length, b.length);
+  for (let i = 0; i < minLen; i++) {
     mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
   }
+  mismatch |= a.length ^ b.length;
   return mismatch === 0;
 }
 
+export function mnemonicToSeed(mnemonic: string): Uint8Array {
+  const pw = new TextEncoder().encode(mnemonic.trim().toLowerCase().replace(/\s+/g, ' '));
+  return pbkdf2(sha512, pw, new TextEncoder().encode('mnemonic'), { c: 2048, dkLen: 64 });
+}
+
+export function deriveWithHKDF(masterKey: Uint8Array, info: string, length = 32): Uint8Array {
+  return hkdf(sha256, masterKey, new Uint8Array(0), new TextEncoder().encode(info), length);
+}
+
 export { Buffer };
+
+export function derivePairingId(seed: Uint8Array): string {
+  const info = new TextEncoder().encode('zerovault-pairing-v1');
+  const raw = hkdf(sha256, seed, new Uint8Array(0), info, 10);
+  const hex = bytesToHex(raw);
+  raw.fill(0);
+  return hex;
+}

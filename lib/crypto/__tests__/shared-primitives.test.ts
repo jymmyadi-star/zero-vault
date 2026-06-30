@@ -36,9 +36,8 @@ describe('Shared Crypto Primitives — Fuzz & Edge Cases', () => {
       expect(bytesToHex(new Uint8Array([255]))).toBe('ff');
     });
 
-    it('hexToBytes handles odd-length by padding', () => {
-      const bytes = hexToBytes('abc');
-      expect(bytes.length).toBeGreaterThan(0);
+    it('hexToBytes rejects odd-length hex', () => {
+      expect(() => hexToBytes('abc')).toThrow('Invalid hex string');
     });
 
     it('hexToBytes handles uppercase', () => {

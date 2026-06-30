@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -90,7 +90,6 @@ export default function ImportVaultScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
@@ -148,7 +147,7 @@ export default function ImportVaultScreen() {
                   <View style={{ flex: 1 }}>
                     <Text style={styles.previewItemTitle} numberOfLines={1}>{item.title || '(no title)'}</Text>
                     <Text style={styles.previewItemMeta} numberOfLines={1}>
-                      {item.itemType} {item.username ? `· ${item.username}` : ''} {item.url ? `· ${item.url}` : ''}
+                      {item.itemType} {item.username ? `Â· ${item.username}` : ''} {item.url ? `Â· ${item.url}` : ''}
                     </Text>
                   </View>
                 </View>
@@ -208,7 +207,7 @@ export default function ImportVaultScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingBottom: 16,

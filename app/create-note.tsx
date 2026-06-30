@@ -4,9 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Dimensions } from 'react-native';
 import { createVaultItem, updateVaultItem, getVaultItemById } from '../lib/services/vault-service';
 
 import { hapticSuccess } from '../lib/haptics';
+
+const { width, height } = Dimensions.get('window');
 
 export default function CreateNoteScreen() {
   const insets = useSafeAreaInsets();
@@ -82,11 +85,31 @@ export default function CreateNoteScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <LinearGradient colors={['#08080A', '#020204']} style={StyleSheet.absoluteFillObject} />
 
-      {/* Cyber Grid Texture */}
-      <View style={styles.gridOverlay}>
-        <LinearGradient colors={['rgba(0, 240, 255, 0.01)', 'transparent']} style={StyleSheet.absoluteFillObject} />
+      {/* Pure Black Background with Perfectly Smooth Vignette Glow */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {/* 1. Vertical Band (Transitions from Purple at bottom to Indigo/Blue at the top) */}
+        <LinearGradient 
+          colors={['#000000', '#040B1A', '#0A113A', '#270E4D', '#0C041A', '#000000']} 
+          locations={[0, 0.2, 0.45, 0.75, 0.95, 1]}
+          style={StyleSheet.absoluteFillObject} 
+        />
+        {/* 2. Left Black Fade (Squeezes light inward to make it narrower) */}
+        <LinearGradient 
+          colors={['#000000', '#000000', 'transparent']} 
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%' }} 
+        />
+        {/* 3. Right Black Fade (Squeezes light inward to make it narrower) */}
+        <LinearGradient 
+          colors={['transparent', '#000000', '#000000']} 
+          locations={[0, 0.6, 1]}
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' }} 
+        />
       </View>
 
       {/* Note Header */}
@@ -139,7 +162,7 @@ export default function CreateNoteScreen() {
           value={title}
           onChangeText={setTitle}
           autoCapitalize="sentences"
-          selectionColor="#00F0FF"
+          selectionColor="#A855F7"
         />
 
         {/* Divider */}
@@ -155,7 +178,7 @@ export default function CreateNoteScreen() {
             onChangeText={setContent}
             multiline
             textAlignVertical="top"
-            selectionColor="#00F0FF"
+            selectionColor="#A855F7"
             keyboardAppearance="dark"
           />
         </View>
@@ -167,11 +190,20 @@ export default function CreateNoteScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020204',
+    backgroundColor: '#000000', // Pitch black
   },
-  gridOverlay: {
+  ambientGlowContainer: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    top: '20%', // Move the epicenter lower, between the buttons and the content
+  },
+  glowOrb: {
+    position: 'absolute',
+    width: height * 0.6,
+    height: height * 0.9, // Taller than it is wide (elongated vertical ellipse)
+    borderRadius: height * 0.45,
+    backgroundColor: '#7E22CE', // Slightly deeper violet/purple to match the new image
   },
   header: {
     flexDirection: 'row',

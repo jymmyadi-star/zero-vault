@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -40,7 +40,6 @@ export default function AgeVerificationScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <View style={styles.inner}>
@@ -103,7 +102,7 @@ export default function AgeVerificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204', justifyContent: 'center' },
+  container: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center' },
   ambientGlow: {
     position: 'absolute', top: -height * 0.1, right: -width * 0.4,
     width: width, height: width, borderRadius: width / 2,

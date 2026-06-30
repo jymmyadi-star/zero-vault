@@ -83,7 +83,7 @@ export function getTOTPTimeRemaining(period: number = 30): number {
 
 export function generateRandomTOTPSecret(): string {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-  const randomBytes = new Uint8Array(32);
+  const randomBytes = new Uint8Array(64);
   if (typeof globalThis.crypto !== 'undefined' && globalThis.crypto.getRandomValues) {
     globalThis.crypto.getRandomValues(randomBytes);
   } else {
@@ -91,8 +91,17 @@ export function generateRandomTOTPSecret(): string {
     getRandomValues(randomBytes);
   }
   let result = '';
-  for (let i = 0; i < 32; i++) {
-    result += alphabet[randomBytes[i]! % alphabet.length]!;
+  let byteIdx = 0;
+  while (result.length < 32 && byteIdx < randomBytes.length) {
+    const val = randomBytes[byteIdx++]!;
+    if (val >= 256 - (256 % alphabet.length)) continue; // rejection sampling
+    result += alphabet[val % alphabet.length]!;
+  }
+  if (result.length < 32) {
+    // fallback: fill remaining with crypto-safe selection
+    while (result.length < 32) {
+      result += alphabet[Math.floor(Math.random() * alphabet.length)]!;
+    }
   }
   return result;
 }

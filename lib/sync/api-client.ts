@@ -1,22 +1,65 @@
 import { Logger } from '../logger';
 import { supabase } from '../supabase';
 
-const API_URL = process.env.ZEROVAULT_API_URL || 'http://localhost:4000';
+const API_URL = (() => {
+  const url = (process.env as any).EXPO_PUBLIC_ZEROVAULT_API_URL
+    || process.env.ZEROVAULT_API_URL
+    || 'http://localhost:4000';
+  if (!url) throw new Error('ZEROVAULT_API_URL environment variable is required. Set EXPO_PUBLIC_ZEROVAULT_API_URL in your .env file.');
+  if (!url.startsWith('https://') && !url.startsWith('http://localhost')) {
+    throw new Error('ZEROVAULT_API_URL must use HTTPS in production');
+  }
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.endsWith('.local')) {
+      return url;
+    }
+    if (!/^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?(\/.*)?$/.test(url)) {
+      throw new Error('ZEROVAULT_API_URL has an invalid or suspicious format');
+    }
+  } catch {
+    throw new Error('ZEROVAULT_API_URL must be a valid URL');
+  }
+  return url;
+})();
 
 let ws: any = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let listeners: Array<(type: string, data: any) => void> = [];
 
 let cachedToken: string | null = null;
+let cachedTokenExpiresAt: number = 0;
+const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000; // refresh 5 minutes before expiry
+
+function decodeJwtExp(token: string): number {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return 0;
+    const decoded = JSON.parse(atob(payload));
+    return (decoded.exp || 0) * 1000; // convert to ms
+  } catch {
+    return 0;
+  }
+}
 
 export async function getAccessToken(): Promise<string | null> {
-  if (cachedToken) return cachedToken;
+  if (cachedToken && Date.now() < cachedTokenExpiresAt - TOKEN_REFRESH_MARGIN_MS) {
+    return cachedToken;
+  }
+
+  cachedToken = null;
+  cachedTokenExpiresAt = 0;
 
   if (supabase) {
     try {
       const { data } = await supabase.auth.getSession();
       if (data.session?.access_token) {
         cachedToken = data.session.access_token;
+        cachedTokenExpiresAt = decodeJwtExp(cachedToken);
+        if (cachedTokenExpiresAt === 0) {
+          // If we can't decode exp, set a short TTL to force refresh
+          cachedTokenExpiresAt = Date.now() + 60 * 60 * 1000;
+        }
         return cachedToken;
       }
     } catch {}
@@ -27,6 +70,7 @@ export async function getAccessToken(): Promise<string | null> {
 
 function invalidateToken(): void {
   cachedToken = null;
+  cachedTokenExpiresAt = 0;
 }
 
 async function apiFetch<T>(
@@ -109,12 +153,19 @@ interface VaultSeedData {
   wrappedVaultKey: string;
   wrappedCipherKey: string;
   wrappedSignKey: string;
+  pinVerifySalt: string;
   pinVerifyHash: string;
+  seedMac?: string;
+  pairingId?: string;
   updatedAt?: string;
 }
 
 export const apiClient = {
   setUrl(url: string): void {
+    if (!__DEV__) {
+      Logger.warn('[Security] apiClient.setUrl blocked in production', { module: 'ApiClient' });
+      return;
+    }
     (globalThis as any).__zerovault_api_url = url;
   },
 
@@ -190,7 +241,7 @@ export function connectWebSocket(): void {
   getAccessToken().then((token) => {
     if (!token) return;
 
-    const url = apiClient.getUrl().replace(/^http/, 'ws');
+    const url = apiClient.getUrl().replace(/^https/, 'wss').replace(/^http/, 'ws');
     const wsUrl = `${url}/ws?token=${encodeURIComponent(token)}`;
 
     try {

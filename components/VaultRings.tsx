@@ -22,10 +22,10 @@ const arcPath = (cx: number, cy: number, r: number, startDeg: number, sweepDeg: 
 const START_DEG = 225;
 const SWEEP_DEG = 270;
 
-const Ring = React.memo(({ cx, cy, r, sw, progress, trackColor, gradId, color, clipId, delay = 0 }: {
+const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gradId, color, clipId, delay = 0 }: {
   cx: number; cy: number; r: number; sw: number; progress: number;
   trackColor: string; gradId: string; color: string; clipId: string; delay?: number;
-}) => {
+}) {
   const anim = useSharedValue(0);
   React.useEffect(() => {
     anim.value = withDelay(delay, withTiming(progress, { duration: 1000 }));
@@ -112,7 +112,7 @@ const Ring = React.memo(({ cx, cy, r, sw, progress, trackColor, gradId, color, c
   );
 });
 
-const CenterMedallion = React.memo(({ cx, cy }: { cx: number; cy: number }) => {
+const CenterMedallion = React.memo(function CenterMedallion({ cx, cy }: { cx: number; cy: number }) {
   const d = useMemo(() => {
     let path = "";
     const s = (x: number, y: number, sz: number) =>

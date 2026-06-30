@@ -47,8 +47,8 @@ describe('vault-keychain lifecycle', () => {
     const result = await createVault(PIN);
     expect(result.mnemonic).toBeTruthy();
     expect(result.mnemonic.split(' ').length).toBe(24);
-    expect(result.keySet.vaultKeyHex).toBeTruthy();
-    expect(result.keySet.vaultKeyHex.length).toBe(64);
+    expect(result.keySet.vaultKey.toHex()).toBeTruthy();
+    expect(result.keySet.vaultKey.toHex().length).toBe(64);
     expect(result.keySet.cipherKey.length).toBe(32);
     expect(result.keySet.signKey.length).toBe(32);
 
@@ -63,7 +63,7 @@ describe('vault-keychain lifecycle', () => {
     const created = await createVault(PIN);
     const unlocked = await unlockVault(PIN);
     expect(unlocked).not.toBeNull();
-    expect(unlocked!.vaultKeyHex).toBe(created.keySet.vaultKeyHex);
+    expect(unlocked!.vaultKey.toHex()).toBe(created.keySet.vaultKey.toHex());
   });
 
   it('unlockVault rejects wrong PIN', async () => {
@@ -80,11 +80,11 @@ describe('vault-keychain lifecycle', () => {
     const { mnemonic, keySet } = await createVault(PIN);
     const recovered = await recoverWithMnemonic(mnemonic, NEW_PIN);
 
-    expect(recovered.vaultKeyHex).toBe(keySet.vaultKeyHex);
+    expect(recovered.vaultKey.toHex()).toBe(keySet.vaultKey.toHex());
 
     const unlocked = await unlockVault(NEW_PIN);
     expect(unlocked).not.toBeNull();
-    expect(unlocked!.vaultKeyHex).toBe(keySet.vaultKeyHex);
+    expect(unlocked!.vaultKey.toHex()).toBe(keySet.vaultKey.toHex());
   });
 
   it('old PIN fails after recovery with new PIN', async () => {
@@ -100,11 +100,11 @@ describe('vault-keychain lifecycle', () => {
     const result = await changePin(PIN, NEW_PIN);
 
     expect(result).not.toBeNull();
-    expect(result!.vaultKeyHex).toBe(keySet.vaultKeyHex);
+    expect(result!.vaultKey.toHex()).toBe(keySet.vaultKey.toHex());
 
     const newUnlock = await unlockVault(NEW_PIN);
     expect(newUnlock).not.toBeNull();
-    expect(newUnlock!.vaultKeyHex).toBe(keySet.vaultKeyHex);
+    expect(newUnlock!.vaultKey.toHex()).toBe(keySet.vaultKey.toHex());
   });
 
   it('exportVaultSeed and importVaultSeed roundtrip', async () => {
@@ -116,7 +116,7 @@ describe('vault-keychain lifecycle', () => {
     expect(seed.wrappedVaultKey).toBeTruthy();
 
     const imported = await importVaultSeed(PIN, seed);
-    expect(imported.vaultKeyHex).toBe(keySet.vaultKeyHex);
+    expect(imported.vaultKey.toHex()).toBe(keySet.vaultKey.toHex());
   });
 
   it('purgeVault clears all stored keys', async () => {

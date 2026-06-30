@@ -1,7 +1,11 @@
+import * as SecureStore from 'expo-secure-store';
+
 let MMKV: any;
 try {
   MMKV = require('react-native-mmkv').MMKV;
 } catch {}
+
+const MMKV_ENCRYPTION_KEY = 'zerovault_mmkv_encryption_key';
 
 interface StorageLike {
   getString(key: string): string | undefined;
@@ -31,18 +35,52 @@ class FallbackStorage implements StorageLike {
   }
 }
 
+async function getOrCreateEncryptionKey(): Promise<string> {
+  try {
+    const existing = await SecureStore.getItemAsync(MMKV_ENCRYPTION_KEY);
+    if (existing) return existing;
+  } catch {}
+
+  const key = Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+
+  try {
+    await SecureStore.setItemAsync(MMKV_ENCRYPTION_KEY, key);
+  } catch {}
+
+  return key;
+}
+
 let _storage: StorageLike | null = null;
+
+function initMMKV(): StorageLike {
+  if (!MMKV) return new FallbackStorage();
+
+  let storage: StorageLike;
+  try {
+    storage = new MMKV({ id: 'zerovault-kv' });
+  } catch {
+    return new FallbackStorage();
+  }
+
+  getOrCreateEncryptionKey().then((encKey) => {
+    try {
+      const encrypted = new MMKV({ id: 'zerovault-kv-enc', encrypt: true, key: encKey });
+      _storage = encrypted;
+    } catch {
+      // Encryption not supported by this MMKV version; keep unencrypted instance
+    }
+  }).catch(() => {});
+
+  return storage;
+}
 
 function getOrCreateStorage(): StorageLike {
   if (_storage) return _storage;
-  if (MMKV) {
-    try {
-      _storage = new MMKV({ id: 'zerovault-kv' });
-      return _storage!;
-    } catch {}
-  }
-  _storage = new FallbackStorage();
-  return _storage;
+  const s = initMMKV();
+  _storage = s;
+  return s;
 }
 
 export const kv = {

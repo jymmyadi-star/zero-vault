@@ -20,8 +20,8 @@ async function send(msg: { type: string; data?: any }): Promise<any> {
 }
 
 function showCopied(): void {
-    copiedEl.classList.add('show');
-    setTimeout(() => copiedEl.classList.remove('show'), 1500);
+  copiedEl.classList.add('show');
+  setTimeout(() => copiedEl.classList.remove('show'), 1500);
 }
 
 function render(): void {
@@ -35,7 +35,7 @@ function render(): void {
     document.getElementById('btn-auth')?.addEventListener('click', async () => {
       const res = await send({ type: 'ANON_SIGN_IN' });
       if (res.success) { auth = true; render(); }
-      else { content.innerHTML = `<div class="error">${res.error || 'Auth failed'}</div>`; }
+      else { content.innerHTML = `<div class="error">${escHtml(res.error || 'Auth failed')}</div>`; }
     });
     return;
   }
@@ -43,39 +43,21 @@ function render(): void {
   if (!unlocked) {
     content.innerHTML = `
       <div style="padding: 10px 0">
-        <p style="margin-bottom: 8px; font-size: 12px; color: #aaa;">Enter your 24-word recovery phrase to unlock:</p>
-        <textarea class="mnemonic-input" id="mnemonic" placeholder="word1 word2 word3 ... word24"></textarea>
+        <p style="margin-bottom: 8px; font-size: 12px; color: #FF3B30;">Vault locked — enter your 24-word recovery phrase:</p>
+        <textarea class="mnemonic-input" id="mnemonic" placeholder="word1 word2 word3 ... word24" autofocus></textarea>
         <button class="btn btn-primary" id="btn-unlock">UNLOCK VAULT</button>
-        <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05);">
-          <p style="margin-bottom: 8px; font-size: 11px; color: #666;">No vault yet? Create one for testing:</p>
-          <button class="btn" id="btn-create" style="color: #00F0FF; border-color: rgba(0,240,255,0.2);">CREATE TEST VAULT</button>
-        </div>
+        <p style="margin-top: 12px; font-size: 10px; color: #666;">The vault auto-locks after ${15} minutes of inactivity.</p>
       </div>`;
     document.getElementById('btn-unlock')?.addEventListener('click', async () => {
-      const mnemonic = (document.getElementById('mnemonic') as HTMLTextAreaElement).value;
+      const mnemonic = (document.getElementById('mnemonic') as HTMLTextAreaElement).value.trim();
+      if (!mnemonic) { alert('Please enter your recovery phrase.'); return; }
       const res = await send({ type: 'UNLOCK_WITH_MNEMONIC', data: { mnemonic } });
       if (res.success) { unlocked = true; statusEl.textContent = 'UNLOCKED'; statusEl.className = 'status unlocked'; await loadItems(); render(); }
-      else { alert('Invalid recovery phrase. Check your 24 words.'); }
-    });
-    document.getElementById('btn-create')?.addEventListener('click', async () => {
-      const res = await send({ type: 'CREATE_TEST_VAULT' });
-      if (res.success) {
-        const mnemonic = res.mnemonic;
-        const el = document.getElementById('mnemonic') as HTMLTextAreaElement;
-        el.value = mnemonic;
-        el.style.height = 'auto';
-        el.style.height = el.scrollHeight + 'px';
-        alert('NEW VAULT CREATED!\n\nSave these 24 words on paper:\n\n' + mnemonic + '\n\nThey are now filled in the box above. Click UNLOCK VAULT to open.');
-        const res2 = await send({ type: 'UNLOCK_WITH_MNEMONIC', data: { mnemonic } });
-        if (res2.success) { unlocked = true; statusEl.textContent = 'UNLOCKED'; statusEl.className = 'status unlocked'; await loadItems(); render(); }
-      } else {
-        alert('Failed to create vault: ' + (res.error || 'Unknown error'));
-      }
+      else { alert('Invalid recovery phrase. Check your 24 words and try again.'); }
     });
     return;
   }
 
-  // Unlocked view
   content.innerHTML = `
     <input class="search" id="search" placeholder="Search vault..." autofocus>
     <div id="itemList" class="item-list"></div>
@@ -117,14 +99,14 @@ function renderItems(list: VaultItem[]): void {
   }
 
   el.innerHTML = list.map((item) => `
-    <div class="item" data-id="${item.id}">
+    <div class="item" data-id="${escHtml(item.id)}">
       <div>
-        <div class="item-title">${esc(item.title)}</div>
-        <div class="item-sub">${esc(item.username || item.urlHint || '')}</div>
+        <div class="item-title">${escHtml(item.title)}</div>
+        <div class="item-sub">${escHtml(item.username || item.urlHint || '')}</div>
       </div>
       <div class="item-actions">
-        <button class="icon-btn copy-btn" data-id="${item.id}" data-field="username" title="Copy username">👤</button>
-        <button class="icon-btn copy-btn" data-id="${item.id}" data-field="password" title="Copy password">📋</button>
+        <button class="icon-btn copy-btn" data-id="${escHtml(item.id)}" data-field="username" title="Copy username">👤</button>
+        <button class="icon-btn copy-btn" data-id="${escHtml(item.id)}" data-field="password" title="Copy password">📋</button>
       </div>
     </div>`).join('');
 
@@ -157,11 +139,12 @@ async function loadItems(): Promise<void> {
   }));
 }
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function escHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Entry
+const AUTO_LOCK_MINUTES = 15;
+
 (async () => {
   const res = await send({ type: 'GET_STATUS' });
   auth = res.authenticated;
@@ -173,3 +156,5 @@ function esc(s: string): string {
   }
   render();
 })();
+
+export {};

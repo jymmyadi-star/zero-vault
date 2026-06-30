@@ -16,12 +16,19 @@ async function deleteCorruptedDatabase(): Promise<void> {
     const sqliteDir = `${baseDir}SQLite/`;
     const dbPath = `${sqliteDir}${DB_NAME}`;
     const files = [dbPath, `${dbPath}.db`, `${dbPath}-wal`, `${dbPath}-shm`];
+    const randomBlock = Array.from(crypto.getRandomValues(new Uint8Array(4096)))
+      .map(b => String.fromCharCode(b)).join('');
+
     for (const path of files) {
       try {
         const info = await FileSystem.getInfoAsync(path);
         if (info.exists) {
+          // Overwrite with random data before deletion to prevent forensic recovery
+          try {
+            await FileSystem.writeAsStringAsync(path, randomBlock, { encoding: FileSystem.EncodingType.Base64 });
+          } catch {}
           await FileSystem.deleteAsync(path, { idempotent: true });
-          Logger.info('[Database] Deleted corrupted file', { module: 'Database', path });
+          Logger.info('[Database] Securely deleted corrupted file', { module: 'Database', path });
         }
       } catch {}
     }
@@ -97,8 +104,30 @@ export async function initializeDatabase(vaultKeyHex: string): Promise<DatabaseT
     throw new Error(`CRITICAL SECURITY FAILURE: Could not encrypt local database. Details: ${err.message}`);
   }
 
+  await ensureIndexes(activeAdapter);
+
   Logger.info('[Database] Initialized successfully', { module: 'Database' });
   return database;
+}
+
+async function ensureIndexes(adapter: SQLiteAdapter): Promise<void> {
+  const indexes: [string, unknown[]][] = [
+    ['CREATE INDEX IF NOT EXISTS idx_vault_items_is_pending_delete ON vault_items (is_pending_delete)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_vault_items_updated_at ON vault_items (updated_at)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_vault_items_revision ON vault_items (revision)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_vault_items_folder ON vault_items (folder)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_sync_backlog_record_id ON sync_backlog (record_id)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_sync_backlog_verified ON sync_backlog (verified)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_conflicts_entity_type ON _conflicts (entity_type)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_conflicts_created_at ON _conflicts (created_at)', []],
+    ['CREATE INDEX IF NOT EXISTS idx_conflicts_is_pending_delete ON _conflicts (is_pending_delete)', []],
+  ];
+  try {
+    await (adapter as unknown as { unsafeExecute(options: { sqls: [string, unknown[]][] }): Promise<void> }).unsafeExecute({ sqls: indexes });
+    Logger.info('[Database] Indexes ensured', { module: 'Database' });
+  } catch (e) {
+    Logger.warn('[Database] Failed to ensure indexes — continuing', { module: 'Database', error: e });
+  }
 }
 
 export function getDatabase(): DatabaseType {

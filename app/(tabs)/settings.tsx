@@ -71,7 +71,7 @@ export default function SettingsScreen() {
               const Share = require('react-native').Share;
               await Share.share({
                 message: result.data,
-                title: `ZeroVault Export — ${result.itemCount} items`,
+                title: `ZeroVault Export â€” ${result.itemCount} items`,
               });
               hapticSuccess();
             } catch (err: any) {
@@ -90,10 +90,10 @@ export default function SettingsScreen() {
     hapticWarning();
     Alert.prompt(
       'Rotate Cryptographic Keys',
-      'Enter your Master PIN to confirm. All vault items will be re-encrypted with new keys. This may take a moment.',
+      'Enter your Master Password to confirm. All vault items will be re-encrypted with new keys. This may take a moment.',
       async (pin) => {
         if (!pin || pin.length < 8) {
-          Alert.alert('Invalid PIN', 'PIN must be at least 8 digits.');
+          Alert.alert('Invalid Password', 'Password must be at least 8 characters.');
           return;
         }
         setIsRotating(true);
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
           });
           hapticSuccess();
           Alert.alert(
-            'Keys Rotated ✓',
+            'Keys Rotated âœ“',
             `${result.reEncryptedCount} items re-encrypted. New epoch: ${result.newEpochId}.`,
           );
         } catch (err: any) {
@@ -123,7 +123,7 @@ export default function SettingsScreen() {
   const handlePurgeAllData = () => {
     hapticWarning();
     Alert.alert(
-      '⚠️ PURGE ALL DATA',
+      'âš ï¸ PURGE ALL DATA',
       'This action is irreversible and complies with GDPR Right to Be Forgotten. All cryptographic items, master credentials, salts, and local storage configurations will be completely and permanently wiped from this device.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -210,7 +210,7 @@ export default function SettingsScreen() {
     if (value) {
       Alert.alert(
         'Enable Cloud Backup',
-        'Your encrypted vault data will be synced to the cloud using an anonymous account. The server never sees your plaintext data — everything is encrypted with your Master PIN before leaving this device.',
+        'Your encrypted vault data will be synced to the cloud using an anonymous account. The server never sees your plaintext data â€” everything is encrypted with your Master Password before leaving this device.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -261,13 +261,32 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
-      {/* Cyber Grid & Ambient Glows */}
-      <View style={styles.gridOverlay}>
-        <LinearGradient colors={['rgba(255, 255, 255, 0.005)', 'transparent']} style={StyleSheet.absoluteFillObject} />
+      {/* Pure Black Background with Perfectly Smooth Vignette Glow */}
+      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+        {/* 1. Vertical Band (Transitions from Purple at bottom to Indigo/Blue at the top) */}
+        <LinearGradient 
+          colors={['#000000', '#040B1A', '#0A113A', '#270E4D', '#0C041A', '#000000']} 
+          locations={[0, 0.2, 0.45, 0.75, 0.95, 1]}
+          style={StyleSheet.absoluteFillObject} 
+        />
+        {/* 2. Left Black Fade (Squeezes light inward to make it narrower) */}
+        <LinearGradient 
+          colors={['#000000', '#000000', 'transparent']} 
+          locations={[0, 0.4, 1]}
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%' }} 
+        />
+        {/* 3. Right Black Fade (Squeezes light inward to make it narrower) */}
+        <LinearGradient 
+          colors={['transparent', '#000000', '#000000']} 
+          locations={[0, 0.6, 1]}
+          start={{ x: 0, y: 0 }} 
+          end={{ x: 1, y: 0 }}
+          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' }} 
+        />
       </View>
-      <View style={styles.ambientGlow} />
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
@@ -283,11 +302,10 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.row}
               onPress={() => router.push('/change-pin')}
-              activeOpacity={0.7}
             >
               <View style={styles.rowLeft}>
                 <Ionicons name="key-outline" size={20} color="#FFFFFF" />
-                <Text style={styles.rowLabel}>Change Master PIN</Text>
+                <Text style={styles.rowLabel}>Change Master Password</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="#52525b" />
             </TouchableOpacity>
@@ -383,7 +401,7 @@ export default function SettingsScreen() {
                 <Ionicons name="cloud-download-outline" size={20} color="#FFFFFF" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowLabel}>Export as Bitwarden JSON</Text>
-                  <Text style={styles.syncStatusText}>COMPATIBLE WITH BITWARDEN • 1PASSWORD • KEEPASS</Text>
+                  <Text style={styles.syncStatusText}>COMPATIBLE WITH BITWARDEN â€¢ 1PASSWORD â€¢ KEEPASS</Text>
                 </View>
               </View>
               {isExporting
@@ -403,7 +421,7 @@ export default function SettingsScreen() {
                 <Ionicons name="document-text-outline" size={20} color="#FFFFFF" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowLabel}>Export as CSV</Text>
-                  <Text style={styles.syncStatusText}>GENERIC FORMAT • EXCEL • GOOGLE SHEETS</Text>
+                  <Text style={styles.syncStatusText}>GENERIC FORMAT â€¢ EXCEL â€¢ GOOGLE SHEETS</Text>
                 </View>
               </View>
               {isExporting
@@ -433,7 +451,7 @@ export default function SettingsScreen() {
                   <Text style={styles.syncStatusText}>
                     {isRotating && rotationProgress
                       ? `RE-ENCRYPTING ${rotationProgress.current}/${rotationProgress.total}...`
-                      : 'GENERATES NEW CIPHERKEY • SIGNKEY • RE-ENCRYPTS ALL ITEMS'}
+                      : 'GENERATES NEW CIPHERKEY â€¢ SIGNKEY â€¢ RE-ENCRYPTS ALL ITEMS'}
                   </Text>
                 </View>
               </View>
@@ -550,21 +568,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020204',
-  },
-  gridOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 0.8,
-  },
-  ambientGlow: {
-    position: 'absolute',
-    bottom: height * 0.1,
-    right: -width * 0.2,
-    width: width * 0.8,
-    height: width * 0.8,
-    borderRadius: (width * 0.8) / 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.005)',
-    filter: Platform.OS === 'ios' ? 'blur(100px)' : undefined,
+    backgroundColor: '#000000',
   },
   scrollContent: {
     paddingHorizontal: 20,

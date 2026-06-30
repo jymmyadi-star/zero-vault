@@ -21,16 +21,32 @@ export function generatePassword(options: GeneratorOptions): string {
   if (options.length < 4) throw new Error('Password length must be at least 4');
   if (options.length > 128) throw new Error('Password length must not exceed 128');
 
+  const enabledClasses: string[] = ['lowercase'];
   let charset = LOWERCASE;
-  if (options.includeUppercase) charset += UPPERCASE;
-  if (options.includeDigits) charset += DIGITS;
-  if (options.includeSymbols) charset += SYMBOLS;
+  if (options.includeUppercase) { charset += UPPERCASE; enabledClasses.push('uppercase'); }
+  if (options.includeDigits) { charset += DIGITS; enabledClasses.push('digits'); }
+  if (options.includeSymbols) { charset += SYMBOLS; enabledClasses.push('symbols'); }
+
   if (options.excludeAmbiguous) {
     charset = charset.split('').filter(c => !AMBIGUOUS.includes(c)).join('');
   }
 
   if (charset.length === 0) {
-    throw new Error('Character set is empty — enable at least one character class');
+    throw new Error('INVALID_CHARSET_CONFIG: Character set is empty — enable at least one character class');
+  }
+
+  if (charset.length < 4) {
+    throw new Error('INVALID_CHARSET_CONFIG: Character set too small after ambiguous exclusion. Disable excludeAmbiguous or enable more character classes.');
+  }
+
+  if (options.includeUppercase && !/[A-Z]/.test(charset)) {
+    throw new Error('INVALID_CHARSET_CONFIG: Uppercase requested but all uppercase characters were excluded by ambiguous filter. Disable excludeAmbiguous.');
+  }
+  if (options.includeDigits && !/[0-9]/.test(charset)) {
+    throw new Error('INVALID_CHARSET_CONFIG: Digits requested but all digit characters were excluded by ambiguous filter. Disable excludeAmbiguous.');
+  }
+  if (options.includeSymbols && !/[^a-zA-Z0-9]/.test(charset)) {
+    throw new Error('INVALID_CHARSET_CONFIG: Symbols requested but all symbol characters were excluded by ambiguous filter. Disable excludeAmbiguous.');
   }
 
   const array = new Uint32Array(options.length);
@@ -41,15 +57,17 @@ export function generatePassword(options: GeneratorOptions): string {
     result += charset[array[i]! % charset.length];
   }
 
-  // Ensure at least one of each requested type
   if (options.includeUppercase && !/[A-Z]/.test(result)) {
-    result = result.substring(0, result.length - 1) + UPPERCASE[array[0]! % UPPERCASE.length];
+    const upperOnly = UPPERCASE.split('').filter(c => !AMBIGUOUS.includes(c)).join('') || UPPERCASE;
+    result = result.substring(0, result.length - 1) + upperOnly[array[0]! % upperOnly.length];
   }
   if (options.includeDigits && !/\d/.test(result)) {
-    result = result.substring(0, result.length - 2) + DIGITS[array[1]! % DIGITS.length] + result.charAt(result.length - 1);
+    const digitsOnly = DIGITS.split('').filter(c => !AMBIGUOUS.includes(c)).join('') || DIGITS;
+    result = result.substring(0, result.length - 2) + digitsOnly[array[1]! % digitsOnly.length] + result.charAt(result.length - 1);
   }
   if (options.includeSymbols && !/[^a-zA-Z0-9]/.test(result)) {
-    result = result.substring(0, result.length - 2) + SYMBOLS[array[2]! % SYMBOLS.length] + result.charAt(result.length - 1);
+    const symOnly = SYMBOLS.split('').filter(c => !AMBIGUOUS.includes(c)).join('') || SYMBOLS;
+    result = result.substring(0, result.length - 2) + symOnly[array[2]! % symOnly.length] + result.charAt(result.length - 1);
   }
 
   return result;

@@ -45,7 +45,10 @@ export async function pullChanges(): Promise<void> {
 
     const signKey = storeState.signKey!;
 
-    let lastVerifiedHash: string | null = null;
+    const storedHash = await readStoredHash();
+    const signKeyForHash = signKey.copy();
+    let lastVerifiedHash = unsealVerifiedHash(storedHash, signKeyForHash);
+    signKeyForHash.fill(0);
     let currentSinceId = lastId;
 
     while (true) {
@@ -56,30 +59,56 @@ export async function pullChanges(): Promise<void> {
       totalLogsProcessed += result.logs.length;
 
       for (const log of result.logs) {
-        try {
-          await verifyHashChain(log, lastVerifiedHash, signKey.copy());
-          const payloadData = JSON.parse(log.payload_ciphertext);
-          lastVerifiedHash = payloadData.chain?.signature ?? null;
-          const merged = await mergeRemoteChange(log, payloadData, signKey.copy());
-          if (merged) totalMerged++;
+        let success = false;
+        let retryCount = 0;
 
-          if (lastVerifiedHash) {
-            const signKeyCopy = signKey.copy();
-            await db.write(async () => {
-              await writeStoredHash(sealVerifiedHash(lastVerifiedHash!, signKeyCopy));
-            });
-            signKeyCopy.fill(0);
+        while (!success && retryCount < 3) {
+          try {
+            const sKey1 = signKey.copy();
+            await verifyHashChain(log, lastVerifiedHash, sKey1);
+            sKey1.fill(0);
+            const payloadData = JSON.parse(log.payload_ciphertext);
+            
+            const sKey2 = signKey.copy();
+            const merged = await mergeRemoteChange(log, payloadData, sKey2);
+            sKey2.fill(0);
+            if (!merged) {
+              throw new Error('Merge remote change failed locally');
+            }
+            
+            totalMerged++;
+
+            lastVerifiedHash = payloadData.chain?.signature ?? null;
+            if (lastVerifiedHash) {
+              const signKeyCopy = signKey.copy();
+              await db.write(async () => {
+                await writeStoredHash(sealVerifiedHash(lastVerifiedHash!, signKeyCopy));
+              });
+              signKeyCopy.fill(0);
+            }
+
+            currentSinceId = log.id;
+            success = true;
+          } catch (e) {
+            retryCount++;
+            const errorMessage = e instanceof Error ? e.message : String(e);
+
+            if (errorMessage.includes('HASH_CHAIN_BROKEN')) {
+              Logger.warn('Hash chain verification failed — skipping entry', {
+                module: 'SyncEngine', logId: log.id, error: errorMessage,
+              });
+              currentSinceId = log.id;
+              success = true;
+            } else if (retryCount >= 3) {
+              Logger.error('Failed to merge remote change after 3 retries, advancing cursor to prevent infinite block', {
+                module: 'SyncEngine', logId: log.id, error: errorMessage,
+              });
+              currentSinceId = log.id;
+              success = true;
+            } else {
+              Logger.warn('Retrying log entry in pull', { module: 'SyncEngine', logId: log.id, retryCount });
+            }
           }
-
-          currentSinceId = log.id;
-        } catch (e) {
-          Logger.warn('Hash chain verification failed — stopping pull', {
-            module: 'SyncEngine',
-            logId: log.id,
-            error: e instanceof Error ? e.message : String(e),
-          });
-          useVaultStore.getState().setSyncStatus('error');
-          return;
         }
       }
 
@@ -109,6 +138,8 @@ export async function pullChanges(): Promise<void> {
         merged: totalMerged,
       });
     }
+
+    await cleanupOldConflicts(db);
   } catch (err) {
     Logger.error('[Sync] Pull failed', err, { module: 'SyncEngine' });
     useVaultStore.getState().setSyncStatus('error');
@@ -142,6 +173,7 @@ async function mergeRemoteChange(
         const dek = unwrapKey(wrapped, signKey);
         plaintext = decryptPayload(payloadData.envelope as any, dek);
         dek.fill(0);
+        signKey.fill(0);
       } catch {
         return false;
       }
@@ -181,29 +213,29 @@ async function mergeRemoteChange(
                 m.createdAt = Date.now();
               });
             } catch {
-              // _conflicts write failure is non-fatal — proceed with server-wins merge
+              // _conflicts write failure is non-fatal
             }
-          }
-
-          const updates: Record<string, unknown> = {};
-          for (const [key, value] of Object.entries(plaintext!)) {
-            if (key !== 'id' && key !== '_meta') {
-              updates[key] = value;
+          } else {
+            const updates: Record<string, unknown> = {};
+            for (const [key, value] of Object.entries(plaintext!)) {
+              if (key !== 'id' && key !== '_meta') {
+                updates[key] = value;
+              }
             }
-          }
 
-          if (updates.payload && typeof updates.payload === 'object') {
-            const envelope = encryptPayload(updates.payload as Record<string, unknown>, cipherKey);
-            updates.payloadCiphertext = JSON.stringify(envelope);
-            delete updates.payload;
-          }
-
-          await existing.update((m: any) => {
-            for (const [key, value] of Object.entries(updates)) {
-              try { m[key] = value; } catch {}
+            if (updates.payload && typeof updates.payload === 'object') {
+              const envelope = encryptPayload(updates.payload as Record<string, unknown>, cipherKey);
+              updates.payloadCiphertext = JSON.stringify(envelope);
+              delete updates.payload;
             }
-            m.updatedAt = Date.now();
-          });
+
+            await existing.update((m: any) => {
+              for (const [key, value] of Object.entries(updates)) {
+                try { m[key] = value; } catch {}
+              }
+              m.updatedAt = Date.now();
+            });
+          }
         }
       } catch {
         if (operation !== 'DELETE') {
@@ -238,3 +270,17 @@ async function mergeRemoteChange(
 }
 
 export const SyncPull = { pullChanges };
+
+async function cleanupOldConflicts(db: any): Promise<void> {
+  const CONFLICT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+  const cutoff = Date.now() - CONFLICT_RETENTION_MS;
+  try {
+    const oldConflicts = await db.get('_conflicts').query().fetch();
+    for (const c of oldConflicts) {
+      const createdAt = c.createdAt || c._raw?.created_at || 0;
+      if (createdAt < cutoff) {
+        try { await c.markAsDeleted(); } catch {}
+      }
+    }
+  } catch {}
+}

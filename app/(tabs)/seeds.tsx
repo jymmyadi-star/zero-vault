@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+﻿import React, { useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, Dimensions, Platform } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -43,7 +43,6 @@ export default function SeedsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       {/* Cyber Grid & Ambient Glows */}
       <View style={styles.gridOverlay}>
@@ -105,7 +104,7 @@ export default function SeedsScreen() {
           ListEmptyComponent={
             search ? (
               <View style={styles.emptySearch}>
-                <Text style={styles.emptySubtitle}>No seeds matching "{search}"</Text>
+                <Text style={styles.emptySubtitle}>No seeds matching &quot;{search}&quot;</Text>
               </View>
             ) : null
           }
@@ -128,7 +127,7 @@ export default function SeedsScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204' 
+    backgroundColor: 'transparent' 
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

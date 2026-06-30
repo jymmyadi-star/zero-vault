@@ -37,11 +37,17 @@ export function useAutoLock(): void {
     return DEFAULT_IDLE_MINUTES;
   };
 
-  // Reset activity timestamp whenever the app comes back to foreground
+  // Lock on background if biometrics enabled, reset timer on foreground
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') {
         resetActivityTimer();
+      }
+      if (state === 'background') {
+        const biometricEnabled = kv.get('zerovault_biometric_enabled') === 'true';
+        if (biometricEnabled && useVaultStore.getState().status === 'unlocked') {
+          useVaultStore.getState().lock();
+        }
       }
     });
     return () => sub.remove();

@@ -92,63 +92,65 @@ export async function rotateKeys(
   const newWrappedSign = wrapKey(newSignKeyRaw, wrappingKey.copy());
   wrappingKey.dispose();
 
-  // 5. Re-encrypt all vault items with new cipher key
+  // 5. Decrypt all vault items with old key, then re-encrypt with new key (in memory)
   const db = getDatabase();
   const records = await db.get('vault_items').query().fetch();
-  const total = records.filter((r: any) => !(r.isPendingDelete || r._raw?.is_pending_delete)).length;
-  let reEncryptedCount = 0;
+  const activeRecords = records.filter((r: any) => !(r.isPendingDelete || r._raw?.is_pending_delete));
+  const total = activeRecords.length;
 
-  for (const record of records) {
-    if ((record as any).isPendingDelete || (record as any)._raw?.is_pending_delete) continue;
+  // Collect all re-encrypted payloads before touching the DB
+  const reEncrypted: Array<{ record: any; newPayloadCiphertext: string }> = [];
 
-    try {
-      const raw = (record as any)._raw || {};
-      const ciphertextStr = (record as any).payloadCiphertext || raw.payload_ciphertext;
-      if (!ciphertextStr) continue;
+  for (const record of activeRecords) {
+    const raw = (record as any)._raw || {};
+    const ciphertextStr = (record as any).payloadCiphertext || raw.payload_ciphertext;
+    if (!ciphertextStr) continue;
 
-      const envelope: EncryptedEnvelope = JSON.parse(ciphertextStr);
-      const plaintext = decryptPayload(envelope, oldCipherKey);
-      const newEnvelope = encryptPayload(plaintext, newCipherKeyRaw);
+    const envelope: EncryptedEnvelope = JSON.parse(ciphertextStr);
+    const plaintext = decryptPayload(envelope, oldCipherKey);
+    const newEnvelope = encryptPayload(plaintext, newCipherKeyRaw);
 
-      await db.write(async () => {
-        await record.update((m: any) => {
-          m.payloadCiphertext = JSON.stringify(newEnvelope);
-          m.updatedAt = Date.now();
-        });
-      });
-
-      reEncryptedCount++;
-      onProgress?.(reEncryptedCount, total);
-    } catch (err) {
-      Logger.warn('[KeyRotation] Failed to re-encrypt item, skipping', {
-        module: 'KeyRotation',
-        id: (record as any).id,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+    reEncrypted.push({ record, newPayloadCiphertext: JSON.stringify(newEnvelope) });
   }
 
-  // 6. Store new wrapped keys
+  // 6. Single atomic DB transaction — all-or-nothing
+  await db.write(async () => {
+    for (const { record, newPayloadCiphertext } of reEncrypted) {
+      await record.update((m: any) => {
+        m.payloadCiphertext = newPayloadCiphertext;
+        m.updatedAt = Date.now();
+      });
+    }
+  });
+
+  const reEncryptedCount = reEncrypted.length;
+  for (let i = 0; i < reEncryptedCount; i++) {
+    onProgress?.(i + 1, total);
+  }
+
+  // 7. Store new wrapped keys in SecureStore
   await SecureStore.setItemAsync(SECURESTORE_KEYS.WRAPPED_VAULT_KEY, serializeWrappedKey(newWrappedVault));
   await SecureStore.setItemAsync(SECURESTORE_KEYS.WRAPPED_CIPHER_KEY, serializeWrappedKey(newWrappedCipher));
   await SecureStore.setItemAsync(SECURESTORE_KEYS.WRAPPED_SIGN_KEY, serializeWrappedKey(newWrappedSign));
 
-  // 7. Increment epoch
+  // 8. Increment epoch
   const currentEpochStr = await SecureStore.getItemAsync(SECURESTORE_KEYS.KEY_EPOCH);
   const currentEpoch = currentEpochStr ? parseInt(currentEpochStr, 10) : 0;
   const newEpochId = (isNaN(currentEpoch) ? 0 : currentEpoch) + 1;
   await SecureStore.setItemAsync(SECURESTORE_KEYS.KEY_EPOCH, newEpochId.toString());
 
-  // 8. Update vault store with new keys (so app keeps working without re-unlock)
+  // 9. Update vault store with new keys (so app keeps working without re-unlock)
   const { unlock } = useVaultStore.getState();
   unlock({
-    vaultKeyHex: bytesToHex(newVaultKeyRaw),
+    vaultKey: SecureBuffer.from(newVaultKeyRaw),
     cipherKey: SecureBuffer.from(newCipherKeyRaw),
     signKey: SecureBuffer.from(newSignKeyRaw),
   });
 
-  // 9. Zero old key material
+  // 10. Zero old key material
   oldCipherKey.fill(0);
+  newCipherKeyRaw.fill(0);
+  newSignKeyRaw.fill(0);
   newVaultKeyRaw.fill(0);
 
   Logger.info('[KeyRotation] Key rotation complete', {

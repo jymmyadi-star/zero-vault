@@ -10,11 +10,13 @@
  * The caller is responsible for sharing/saving securely.
  */
 
-import { getDatabase } from '../db';
-import { decryptVaultItem } from '../services/vault-service';
+import { getDatabase } from './db';
+import { decryptVaultItem } from './services/vault-service';
+import { randomBytes, encryptPayload, type EncryptedEnvelope } from './crypto/crypto-utils';
 
 export interface ExportOptions {
   format: 'bitwarden-json' | 'csv';
+  password?: string;
 }
 
 export interface ExportResult {
@@ -132,7 +134,7 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
   if (options.format === 'bitwarden-json') {
     const bitwardenItems = items.map(tobitwardenItem).filter(Boolean);
     const exportData = {
-      encrypted: false,
+      encrypted: !!options.password,
       folders: [],
       items: bitwardenItems,
       _zerovault_export: {
@@ -141,8 +143,21 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
         itemCount: bitwardenItems.length,
       },
     };
+    let data: string;
+    if (options.password) {
+      const pwBytes = new TextEncoder().encode(options.password);
+      const salt = randomBytes(32);
+      const { deriveWithPBKDF2 } = await import('./crypto/crypto-utils');
+      const key = deriveWithPBKDF2(options.password, salt, 600000, 32);
+      const envelope = encryptPayload(exportData as unknown as Record<string, unknown>, key, { export_password_protected: true });
+      data = JSON.stringify({ salt: Buffer.from(salt).toString('hex'), envelope });
+      key.fill(0);
+      pwBytes.fill(0);
+    } else {
+      data = JSON.stringify(exportData, null, 2);
+    }
     return {
-      data: JSON.stringify(exportData, null, 2),
+      data,
       itemCount: bitwardenItems.length,
       format: 'Bitwarden JSON',
     };

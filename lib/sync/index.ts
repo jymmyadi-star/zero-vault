@@ -6,6 +6,7 @@ import { startSyncScheduler, stopSyncScheduler } from './sync-scheduler';
 import { connectWebSocket, disconnectWebSocket } from './api-client';
 import { Logger } from '../logger';
 import { kv } from '../storage';
+import { consentManager } from '../consent-manager';
 
 const SYNC_ENABLED_KEY = 'zerovault_sync_enabled';
 
@@ -30,6 +31,12 @@ export async function enableSync(): Promise<boolean> {
         });
         return false;
       }
+    }
+
+    const hasConsent = await consentManager.has('cloud_sync');
+    if (!hasConsent) {
+      Logger.warn('[Sync] Consent required — user has not granted cloud_sync consent', { module: 'SyncConfig' });
+      return false;
     }
 
     kv.set(SYNC_ENABLED_KEY, 'true');

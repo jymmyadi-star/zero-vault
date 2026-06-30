@@ -244,3 +244,5 @@ setTimeout(() => {
   const pw = findPasswordField(fields);
   if (pw) injectButton(pw);
 }, 500);
+
+export {};

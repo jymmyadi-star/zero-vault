@@ -1,6 +1,36 @@
 import type { SyncLogEntry, PushChange, VaultSeedData } from './types';
 
-const API_URL = 'http://localhost:4000';
+let API_URL = 'http://localhost:4000';
+let isApiUrlLoaded = false;
+
+// Async initialize API_URL for production (from build var or chrome storage)
+async function getApiUrl(): Promise<string> {
+  // 1. Build-time injection (highest priority)
+  if (typeof process !== 'undefined' && process.env) {
+    // @ts-ignore
+    if (process.env.EXPO_PUBLIC_ZEROVAULT_API_URL) return process.env.EXPO_PUBLIC_ZEROVAULT_API_URL;
+    // @ts-ignore
+    if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+  }
+  
+  if (isApiUrlLoaded) return API_URL;
+
+  // 2. Runtime override via extension storage (for self-hosters)
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(['ZEROVAULT_API_URL'], (result: Record<string, any>) => {
+        if (typeof result.ZEROVAULT_API_URL === 'string') {
+          API_URL = result.ZEROVAULT_API_URL;
+        }
+        isApiUrlLoaded = true;
+        resolve(API_URL);
+      });
+    });
+  }
+
+  isApiUrlLoaded = true;
+  return API_URL; // Fallback to dev localhost
+}
 
 let cachedToken: string | null = null;
 
@@ -21,7 +51,8 @@ async function apiFetch<T>(
     throw new Error('NOT_AUTHENTICATED');
   }
 
-  let url = `${API_URL}/api${path}`;
+  const baseUrl = await getApiUrl();
+  let url = `${baseUrl}/api${path}`;
   if (options.query) {
     url += '?' + new URLSearchParams(options.query).toString();
   }
@@ -50,8 +81,8 @@ export const api = {
   },
 
   async signIn(email: string, password: string): Promise<{ accessToken: string }> {
-    // Use Supabase directly for sign-in since the API server proxies auth
-    const res = await fetch(`${API_URL}/api/auth/anonymous`, {
+    const baseUrl = await getApiUrl();
+    const res = await fetch(`${baseUrl}/api/auth/anonymous`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -63,7 +94,8 @@ export const api = {
   },
 
   async anonSignIn(): Promise<string> {
-    const res = await fetch(`${API_URL}/api/auth/anonymous`, {
+    const baseUrl = await getApiUrl();
+    const res = await fetch(`${baseUrl}/api/auth/anonymous`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -80,6 +112,10 @@ export const api = {
 
   async pullVaultSeed(): Promise<VaultSeedData | null> {
     return apiFetch('/vault/seed');
+  },
+
+  async pullSeedByPairing(pairingId: string): Promise<VaultSeedData | null> {
+    return apiFetch(`/vault/seed/pair/${pairingId}`);
   },
 
   async push(changes: PushChange[]): Promise<{ accepted: number }> {

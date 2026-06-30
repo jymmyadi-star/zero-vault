@@ -1,14 +1,18 @@
 import React, { useRef, useEffect } from 'react';
 import { Tabs } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Easing, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import { hapticTouch } from '../../lib/haptics';
 
 const { width } = Dimensions.get('window');
 const TAB_BAR_MARGIN = 20;
-const TAB_BAR_WIDTH = width - (TAB_BAR_MARGIN * 2);
-const TAB_WIDTH = TAB_BAR_WIDTH / 4;
+const INACTIVE_FLEX = 1;
+const ACTIVE_FLEX = 2.5;
+
+if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 
 const TABS = [
   { name: 'index', title: 'Passwords', icon: 'key' },
@@ -17,35 +21,66 @@ const TABS = [
   { name: 'settings', title: 'Settings', icon: 'settings' },
 ] as const;
 
-function FloatingTabBar({ state, descriptors, navigation }: any) {
-  const animatedValue = useRef(new Animated.Value(state.index)).current;
+function TabButton({ route, isFocused, onPress, tab }: any) {
+  const animValue = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
 
   useEffect(() => {
-    Animated.spring(animatedValue, {
-      toValue: state.index,
-      useNativeDriver: true,
-      damping: 15,
-      stiffness: 140,
-      mass: 0.8,
+    Animated.timing(animValue, {
+      toValue: isFocused ? 1 : 0,
+      duration: 250,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      useNativeDriver: true, // No more layout thrashing!
     }).start();
-  }, [state.index]);
+  }, [isFocused]);
 
-  const translateX = animatedValue.interpolate({
-    inputRange: [0, 1, 2, 3],
-    outputRange: [0, TAB_WIDTH, TAB_WIDTH * 2, TAB_WIDTH * 3],
+  const translateY = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -4],
+  });
+
+  const iconScale = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.15],
+  });
+
+  const bgOpacity = animValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
   });
 
   return (
-    <View style={styles.container}>
-      <BlurView intensity={80} tint="dark" style={styles.blur}>
-        {/* Animated Sliding Pill Background */}
-        <Animated.View 
-          style={[
-            styles.slidingPill,
-            { transform: [{ translateX }] }
-          ]} 
-        />
+    <View style={[styles.tabContainer, { flex: isFocused ? 2.5 : 1 }]}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.9}
+        style={styles.tabTouch}
+      >
+        <Animated.View style={[styles.activeBackground, { opacity: bgOpacity }]} />
+        
+        <Animated.View style={{ transform: [{ translateY }, { scale: iconScale }] }}>
+          <Ionicons
+            name={(tab.icon + (isFocused ? '' : '-outline')) as any}
+            size={24}
+            color={isFocused ? '#FFFFFF' : '#8E8E93'}
+          />
+        </Animated.View>
+        
+        {isFocused && (
+          <Animated.View style={{ opacity: bgOpacity, overflow: 'hidden', marginLeft: 6 }}>
+            <Text style={styles.labelActive} numberOfLines={1}>
+              {tab.title}
+            </Text>
+          </Animated.View>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+}
 
+function FloatingTabBar({ state, navigation }: any) {
+  return (
+    <View style={styles.container}>
+      <BlurView intensity={90} tint="dark" style={styles.blur}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
           const tab = TABS[index];
@@ -59,26 +94,20 @@ function FloatingTabBar({ state, descriptors, navigation }: any) {
               canPreventDefault: true,
             });
             if (!isFocused && !event.defaultPrevented) {
+              // Trigger layout animation natively before state change
+              LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
               navigation.navigate(route.name);
             }
           };
 
           return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={onPress}
-              activeOpacity={0.8}
-              style={styles.tab}
-            >
-              <Ionicons
-                name={(tab.icon + (isFocused ? '' : '-outline')) as any}
-                size={22}
-                color={isFocused ? '#FFFFFF' : '#8E8E93'}
-              />
-              <Text style={[styles.label, isFocused && styles.labelActive]}>
-                {tab.title}
-              </Text>
-            </TouchableOpacity>
+            <TabButton 
+              key={route.key} 
+              route={route} 
+              isFocused={isFocused} 
+              onPress={onPress} 
+              tab={tab} 
+            />
           );
         })}
       </BlurView>
@@ -106,45 +135,44 @@ const styles = StyleSheet.create({
     bottom: 24,
     left: TAB_BAR_MARGIN,
     right: TAB_BAR_MARGIN,
-    alignItems: 'center',
     zIndex: 100,
   },
   blur: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    borderRadius: 28,
+    borderRadius: 36,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'rgba(18, 18, 20, 0.85)',
+    height: 68,
+    paddingHorizontal: 8,
+  },
+  tabContainer: {
+    height: '100%',
+    justifyContent: 'center',
     paddingVertical: 10,
-    backgroundColor: 'rgba(18, 18, 20, 0.82)',
+    paddingHorizontal: 4,
   },
-  slidingPill: {
-    position: 'absolute',
-    width: TAB_WIDTH - 12,
-    height: 48,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
-    top: 8,
-    left: 6,
-  },
-  tab: {
-    flex: 1,
+  tabTouch: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    zIndex: 1,
+    justifyContent: 'center',
+    height: '100%',
+    width: '100%',
+    borderRadius: 24,
   },
-  label: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: '#8E8E93',
+  activeBackground: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   labelActive: {
     color: '#FFFFFF',
-    fontWeight: '600',
+    fontWeight: '700',
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });

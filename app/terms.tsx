@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +33,6 @@ export default function TermsScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <View style={styles.header}>
@@ -164,7 +163,7 @@ export default function TermsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   ambientGlow: {
     position: 'absolute', top: -height * 0.2, right: -width * 0.3,
     width: width * 0.8, height: width * 0.8, borderRadius: (width * 0.8) / 2,

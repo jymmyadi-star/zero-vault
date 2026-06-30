@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +21,6 @@ export default function PrivacyPolicyScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <View style={styles.topBar}>
@@ -64,10 +63,10 @@ export default function PrivacyPolicyScreen() {
 
         <Section title="[ 04 ] LEGAL BASIS FOR PROCESSING">
           <Text style={styles.body}>Local storage: No legal basis required (local processing only).</Text>
-          <Text style={styles.body}>Cloud sync: GDPR Art. 6(1)(a) — Consent (you manually enable sync).</Text>
-          <Text style={styles.body}>Identity upgrade: GDPR Art. 6(1)(b) — Contractual necessity.</Text>
-          <Text style={styles.body}>Consent records: GDPR Art. 6(1)(c) — Legal obligation.</Text>
-          <Text style={styles.body}>Audit logging: GDPR Art. 6(1)(f) — Legitimate interests.</Text>
+          <Text style={styles.body}>Cloud sync: GDPR Art. 6(1)(a) â€” Consent (you manually enable sync).</Text>
+          <Text style={styles.body}>Identity upgrade: GDPR Art. 6(1)(b) â€” Contractual necessity.</Text>
+          <Text style={styles.body}>Consent records: GDPR Art. 6(1)(c) â€” Legal obligation.</Text>
+          <Text style={styles.body}>Audit logging: GDPR Art. 6(1)(f) â€” Legitimate interests.</Text>
         </Section>
 
         <Section title="[ 05 ] DATA RETENTION">
@@ -85,7 +84,7 @@ export default function PrivacyPolicyScreen() {
         <Section title="[ 08 ] YOUR GDPR RIGHTS">
           <Text style={styles.body}>Under GDPR, you have the following rights:</Text>
           {GDPR.DATA_SUBJECT_RIGHTS.map((r) => (
-            <Text key={r.article} style={styles.rightsItem}>· {r.article}: {r.right}</Text>
+            <Text key={r.article} style={styles.rightsItem}>Â· {r.article}: {r.right}</Text>
           ))}
           <Text style={styles.body}>To exercise these rights, contact: privacy@zerovault.app or dpo@zerovault.app. Response within 30 days.</Text>
         </Section>
@@ -115,7 +114,7 @@ export default function PrivacyPolicyScreen() {
           <Text style={styles.body}>Data Controller: {GDPR.DATA_CONTROLLER.name}</Text>
           <Text style={styles.body}>Email: {GDPR.DATA_CONTROLLER.privacy_email}</Text>
           <Text style={styles.body}>DPO: {GDPR.DPO.email}</Text>
-          <Text style={styles.body}>Supervisory Authority: {GDPR.SUPERVISORY_AUTHORITY.short_name} — {GDPR.SUPERVISORY_AUTHORITY.website}</Text>
+          <Text style={styles.body}>Supervisory Authority: {GDPR.SUPERVISORY_AUTHORITY.short_name} â€” {GDPR.SUPERVISORY_AUTHORITY.website}</Text>
         </Section>
       </ScrollView>
     </View>
@@ -123,7 +122,7 @@ export default function PrivacyPolicyScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   ambientGlow: {
     position: 'absolute', top: -height * 0.2, right: -width * 0.3,
     width: width * 0.8, height: width * 0.8, borderRadius: (width * 0.8) / 2,

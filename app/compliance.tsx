@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,7 +29,7 @@ export default function ComplianceScreen() {
           folder: i.folder,
           favorite: i.favorite,
           created_at: new Date(i.createdAt).toISOString(),
-          note: 'PAYLOAD IS ENCRYPTED — decryptable only with your Master PIN',
+          note: 'PAYLOAD IS ENCRYPTED â€” decryptable only with your Master PIN',
         })),
         consent_records: consentRecords,
       };
@@ -58,7 +58,6 @@ export default function ComplianceScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <View style={styles.topBar}>
@@ -82,7 +81,7 @@ export default function ComplianceScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ GDPR RIGHTS ]</Text>
           {GDPR.DATA_SUBJECT_RIGHTS.map((r) => (
-            <Text key={r.article} style={styles.rightsItem}>· {r.article}: {r.right}</Text>
+            <Text key={r.article} style={styles.rightsItem}>Â· {r.article}: {r.right}</Text>
           ))}
           <Text style={styles.podBody}>Contact: {GDPR.DATA_CONTROLLER.privacy_email}</Text>
         </View>
@@ -92,7 +91,7 @@ export default function ComplianceScreen() {
           <Ionicons name="cloud-download-outline" size={18} color="#00F0FF" />
           <View style={{ flex: 1 }}>
             <Text style={styles.actionTitle}>Data Export (Art. 20)</Text>
-            <Text style={styles.actionSub}>Portability — export your vault metadata</Text>
+            <Text style={styles.actionSub}>Portability â€” export your vault metadata</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#52525b" />
         </TouchableOpacity>
@@ -101,7 +100,7 @@ export default function ComplianceScreen() {
           <Ionicons name="document-text-outline" size={18} color="#00F0FF" />
           <View style={{ flex: 1 }}>
             <Text style={styles.actionTitle}>Consent Records (Art. 15)</Text>
-            <Text style={styles.actionSub}>Access — export your consent history</Text>
+            <Text style={styles.actionSub}>Access â€” export your consent history</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color="#52525b" />
         </TouchableOpacity>
@@ -165,7 +164,7 @@ export default function ComplianceScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   ambientGlow: {
     position: 'absolute', top: -height * 0.2, right: -width * 0.3,
     width: width * 0.8, height: width * 0.8, borderRadius: (width * 0.8) / 2,

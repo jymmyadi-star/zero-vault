@@ -3,6 +3,7 @@ import { exportVaultSeed, importVaultSeed, type VaultSeed, type VaultKeySet } fr
 import { startSyncScheduler, stopSyncScheduler } from '../sync/sync-scheduler';
 import { isSyncEnabled, enableSync } from '../sync/index';
 import { apiClient } from './api-client';
+import { useVaultStore } from '../store/vault-store';
 import { Logger } from '../logger';
 
 export async function isIdentityLinked(): Promise<boolean> {
@@ -46,7 +47,7 @@ export async function upgradeToIdentity(
 
   Logger.info('[Identity] Account upgraded — pending email verification', {
     module: 'Identity',
-    email,
+    emailHash: email.substring(0, 3) + '***@' + email.split('@')[1],
   });
 
   return { success: true, needsVerification: true };
@@ -81,6 +82,7 @@ export async function joinExistingVault(
     wrappedVaultKey: seedData.wrappedVaultKey,
     wrappedCipherKey: seedData.wrappedCipherKey,
     wrappedSignKey: seedData.wrappedSignKey,
+    pinVerifySalt: (seedData as any).pinVerifySalt || '',
     pinVerifyHash: seedData.pinVerifyHash,
   };
 
@@ -107,13 +109,18 @@ export async function pushVaultSeed(): Promise<void> {
   if (!user) return;
 
   try {
-    const seed = await exportVaultSeed();
+    const signKey = useVaultStore.getState().signKey?.copy();
+    const seed = await exportVaultSeed(signKey ?? undefined);
+    if (signKey) { signKey.fill(0); }
     await apiClient.pushVaultSeed({
       deviceSalt: seed.deviceSalt,
       wrappedVaultKey: seed.wrappedVaultKey,
       wrappedCipherKey: seed.wrappedCipherKey,
       wrappedSignKey: seed.wrappedSignKey,
+      pinVerifySalt: seed.pinVerifySalt,
       pinVerifyHash: seed.pinVerifyHash,
+      seedMac: seed.seedMac,
+      pairingId: seed.pairingId,
     });
     Logger.info('[Identity] Vault seed pushed', { module: 'Identity' });
   } catch (err: any) {

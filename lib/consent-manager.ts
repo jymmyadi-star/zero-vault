@@ -6,6 +6,7 @@
 
 import { kv } from './storage';
 import { Logger } from './logger';
+import * as Crypto from 'expo-crypto';
 
 export type ConsentType = 'terms_of_use' | 'privacy_policy' | 'cloud_sync' | 'analytics' | 'crash_reporting';
 
@@ -22,66 +23,102 @@ export interface ConsentHistory {
   last_updated: string;
 }
 
+let _hmacKey: string | null = null;
+
+async function getHmacKey(): Promise<string> {
+  if (_hmacKey) return _hmacKey;
+  try {
+    const { default: SecureStore } = await import('expo-secure-store');
+    let key = await SecureStore.getItemAsync('zerovault_consent_hmac_key');
+    if (!key) {
+      key = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `zerovault-consent-${Date.now()}-${Math.random()}`);
+      await SecureStore.setItemAsync('zerovault_consent_hmac_key', key);
+    }
+    _hmacKey = key;
+  } catch {
+    _hmacKey = 'zerovault-fallback';
+  }
+  return _hmacKey;
+}
+
+async function sign(payload: string): Promise<string> {
+  const key = await getHmacKey();
+  return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, key + payload);
+}
+
 class ConsentManager {
   private readonly STORAGE_KEY = 'zerovault_consent_history';
 
-  private getHistory(): ConsentHistory {
+  private async getHistory(): Promise<ConsentHistory> {
     const raw = kv.get(this.STORAGE_KEY);
     if (!raw) return { records: [], last_updated: '' };
     try {
-      return JSON.parse(raw);
+      const { payload, signature } = JSON.parse(raw);
+      const expected = await sign(payload);
+      if (expected !== signature) {
+        Logger.warn('SECURITY: Consent data tampering detected — resetting', { module: 'ConsentManager' });
+        kv.delete(this.STORAGE_KEY);
+        return { records: [], last_updated: '' };
+      }
+      const history: ConsentHistory = JSON.parse(payload);
+      if (!history || !Array.isArray(history.records)) return { records: [], last_updated: '' };
+      return history;
     } catch {
       Logger.warn('Consent history corrupted — resetting', { module: 'ConsentManager' });
       return { records: [], last_updated: '' };
     }
   }
 
-  private save(history: ConsentHistory): void {
-    kv.set(this.STORAGE_KEY, JSON.stringify(history));
+  private async save(history: ConsentHistory): Promise<void> {
+    const payload = JSON.stringify(history);
+    const signature = await sign(payload);
+    kv.set(this.STORAGE_KEY, JSON.stringify({ payload, signature }));
   }
 
-  grant(type: ConsentType, version?: string): void {
-    const history = this.getHistory();
+  async grant(type: ConsentType, version?: string): Promise<void> {
+    const history = await this.getHistory();
     const idx = history.records.findIndex((r) => r.consent_type === type && !r.withdrawal_timestamp);
     const record: ConsentRecord = { consent_type: type, granted: true, timestamp: new Date().toISOString(), version: version || undefined };
-
     if (idx >= 0) history.records[idx] = record;
     else history.records.push(record);
-
     history.last_updated = new Date().toISOString();
-    this.save(history);
+    await this.save(history);
     Logger.info(`CONSENT GRANTED: ${type}`, { module: 'ConsentManager', consent_type: type });
   }
 
-  withdraw(type: ConsentType): void {
-    const history = this.getHistory();
+  async withdraw(type: ConsentType): Promise<void> {
+    const history = await this.getHistory();
     const record = history.records.find((r) => r.consent_type === type && !r.withdrawal_timestamp);
     if (record) {
       record.withdrawal_timestamp = new Date().toISOString();
       history.last_updated = new Date().toISOString();
-      this.save(history);
+      await this.save(history);
       Logger.info(`CONSENT WITHDRAWN: ${type}`, { module: 'ConsentManager', consent_type: type });
     }
   }
 
-  has(type: ConsentType): boolean {
-    return this.getHistory().records.some((r) => r.consent_type === type && r.granted && !r.withdrawal_timestamp);
+  async has(type: ConsentType): Promise<boolean> {
+    const history = await this.getHistory();
+    return history.records.some((r) => r.consent_type === type && r.granted && !r.withdrawal_timestamp);
   }
 
-  hasAcceptedCurrentPrivacyPolicy(currentVersion: string): boolean {
-    return this.getHistory().records.some((r) => r.consent_type === 'privacy_policy' && r.granted && !r.withdrawal_timestamp && r.version === currentVersion);
+  async hasAcceptedCurrentPrivacyPolicy(currentVersion: string): Promise<boolean> {
+    const history = await this.getHistory();
+    return history.records.some((r: ConsentRecord) => r.consent_type === 'privacy_policy' && r.granted && !r.withdrawal_timestamp && r.version === currentVersion);
   }
 
-  getTimestamp(type: ConsentType): string | null {
-    const record = this.getHistory().records.find((r) => r.consent_type === type && r.granted && !r.withdrawal_timestamp);
+  async getTimestamp(type: ConsentType): Promise<string | null> {
+    const history = await this.getHistory();
+    const record = history.records.find((r: ConsentRecord) => r.consent_type === type && r.granted && !r.withdrawal_timestamp);
     return record?.timestamp || null;
   }
 
-  getAllActive(): ConsentRecord[] {
-    return this.getHistory().records.filter((r) => r.granted && !r.withdrawal_timestamp);
+  async getAllActive(): Promise<ConsentRecord[]> {
+    const history = await this.getHistory();
+    return history.records.filter((r: ConsentRecord) => r.granted && !r.withdrawal_timestamp);
   }
 
-  exportRecords(): ConsentHistory {
+  async exportRecords(): Promise<ConsentHistory> {
     return this.getHistory();
   }
 

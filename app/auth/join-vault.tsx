@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
@@ -43,7 +43,7 @@ export default function JoinVaultScreen() {
       return;
     }
     if (!pin || pin.length < 8) {
-      Alert.alert('Required', 'Please enter the Master PIN from your original device.');
+      Alert.alert('Required', 'Please enter the Master Password from your original device.');
       return;
     }
 
@@ -70,7 +70,6 @@ export default function JoinVaultScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
 
       {/* Cyber Grid & Ambient Glows */}
       <View style={styles.gridOverlay}>
@@ -144,21 +143,21 @@ export default function JoinVaultScreen() {
           }
         ]}>
           <View style={styles.podHeader}>
-            <Text style={styles.podTag}>[ MOD_02 // SYMMETRIC MASTER PIN ]</Text>
+            <Text style={styles.podTag}>[ MOD_02 // SYMMETRIC MASTER PASSWORD ]</Text>
             <View style={[styles.podDot, { backgroundColor: '#34d399' }]} />
           </View>
 
           <InputPod
-            label="Master PIN"
+            label="Master Password"
             icon="shield-checkmark-outline"
-            placeholder="6+ digit PIN from original device"
+            placeholder="Password from original device (min 8 chars)"
             value={pin}
             onChangeText={setPin}
-            keyboardType="number-pad"
+            keyboardType="default"
           />
 
           <Text style={styles.explainer}>
-            Provide the Master PIN configured on your primary vault endpoint. This PIN is mandatory to derive the decryption keys. Without it, your records remain completely unreadable.
+            Provide the Master Password configured on your primary vault endpoint. This password is mandatory to derive the decryption keys. Without it, your records remain completely unreadable.
           </Text>
         </Animated.View>
 
@@ -187,7 +186,7 @@ export default function JoinVaultScreen() {
 const styles = StyleSheet.create({
   container: { 
     flex: 1, 
-    backgroundColor: '#020204' 
+    backgroundColor: 'transparent' 
   },
   gridOverlay: {
     ...StyleSheet.absoluteFillObject,

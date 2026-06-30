@@ -18,8 +18,8 @@ import { Logger } from '../lib/logger';
 import { hapticTouch, hapticSuccess, hapticError, hapticWarning } from '../lib/haptics';
 import { SecureBuffer } from '../lib/crypto/secure-buffer';
 
-const PIN_LENGTH = 8;
-const MAX_PIN = 5;
+const MIN_PASSWORD_LENGTH = 8;
+const MAX_FAILED_ATTEMPTS = 5;
 
 export type VaultMode =
   | 'loading' | 'unlock' | 'setup' | 'setup_confirm'
@@ -64,14 +64,15 @@ export function useVaultAuth() {
 
       if (vk && ck && sk) {
         const { hexToBytes } = await import('../lib/crypto/crypto-utils');
+        const vaultKey = SecureBuffer.from(hexToBytes(vk));
         const cipherKey = SecureBuffer.from(hexToBytes(ck));
         const signKey = SecureBuffer.from(hexToBytes(sk));
         await hapticSuccess();
-        unlockStore({ vaultKeyHex: vk, cipherKey, signKey });
+        unlockStore({ vaultKey, cipherKey, signKey });
         setStatus('unlocked');
       }
     } catch {
-      setError('Biometric unavailable. Enter PIN.');
+      setError('Biometric unavailable. Enter password.');
     }
   }, [unlockStore, setStatus]);
 
@@ -109,8 +110,8 @@ export function useVaultAuth() {
           const word = newInput;
           const hasSeed = await hasRecoverySeed();
           if (!hasSeed) throw new Error('No recovery seed on this device.');
-          if (!pin || pin === '00000000' || pin.length < 8) {
-            setError('Please create a PIN (minimum 8 digits) before recovering.');
+          if (!pin || pin.length < MIN_PASSWORD_LENGTH) {
+            setError('Please create a password (minimum 8 characters) before recovering.');
             setProcessing(false);
             return;
           }
@@ -133,12 +134,12 @@ export function useVaultAuth() {
 
     if (mode === 'setup_confirm') {
       const newPin = confirmPin + digit;
-      if (newPin.length >= PIN_LENGTH) {
+      if (newPin.length >= MIN_PASSWORD_LENGTH) {
         setConfirmPin(newPin);
         setProcessing(true);
         try {
           if (newPin !== pin) {
-            setError('PIN mismatch.');
+            setError('Password mismatch.');
             setConfirmPin('');
             shake();
             await hapticError();
@@ -168,7 +169,7 @@ export function useVaultAuth() {
 
     const newPin = (mode === 'setup' ? pin : pin) + digit;
 
-    if (newPin.length >= PIN_LENGTH) {
+    if (newPin.length >= MIN_PASSWORD_LENGTH) {
       setPin(newPin);
       setProcessing(true);
 
@@ -182,7 +183,7 @@ export function useVaultAuth() {
         try {
           const keySet: VaultKeySet | null = await unlockVault(newPin);
           if (!keySet) {
-            throw new Error('Incorrect PIN.');
+            throw new Error('Incorrect password.');
           }
           await hapticSuccess();
           unlockStore(keySet);
@@ -193,7 +194,7 @@ export function useVaultAuth() {
           if (msg.includes('VAULT_LOCKED')) {
             setMode('locked');
           }
-          setError(msg || 'Incorrect PIN.');
+          setError(msg || 'Incorrect password.');
           setPin('');
           shake();
           await hapticError();
@@ -252,6 +253,6 @@ export function useVaultAuth() {
     handleKeyPress, handleBackspace, handleClear,
     handleSkipRecovery, handleDeleteVault,
     checkVaultState, setMode, setPin, setRecoveryInput,
-    PIN_LENGTH,
+    MIN_PASSWORD_LENGTH,
   };
 }

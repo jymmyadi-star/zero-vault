@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,7 +33,6 @@ export default function CookieConsentScreen() {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#08080C', '#020204']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <View style={styles.topBar}>
@@ -61,9 +60,9 @@ export default function CookieConsentScreen() {
             <Text style={styles.podTitle}>ESSENTIAL (ALWAYS ACTIVE)</Text>
           </View>
           <Text style={styles.podBody}>These are necessary for the enclave to function:</Text>
-          <Text style={styles.bullet}>· Session authentication token (server login)</Text>
-          <Text style={styles.bullet}>· Local encrypted storage keys (device only)</Text>
-          <Text style={styles.bullet}>· Security and integrity verification</Text>
+          <Text style={styles.bullet}>Â· Session authentication token (server login)</Text>
+          <Text style={styles.bullet}>Â· Local encrypted storage keys (device only)</Text>
+          <Text style={styles.bullet}>Â· Security and integrity verification</Text>
         </View>
 
         {/* Analytics */}
@@ -120,7 +119,7 @@ export default function CookieConsentScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204' },
+  container: { flex: 1, backgroundColor: 'transparent' },
   ambientGlow: {
     position: 'absolute', top: -height * 0.2, right: -width * 0.3,
     width: width * 0.8, height: width * 0.8, borderRadius: (width * 0.8) / 2,

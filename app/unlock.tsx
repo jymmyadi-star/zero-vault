@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+﻿import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ function PinDots({ length, max, isError }: { length: number; max: number; isErro
   );
 }
 
-const PIN_LAYOUT = [['1','2','3'],['4','5','6'],['7','8','9'],['','0','⌫']];
+const PIN_LAYOUT = [['1','2','3'],['4','5','6'],['7','8','9'],['','0','âŒ«']];
 
 export default function UnlockScreen() {
   const auth = useVaultAuth();
@@ -29,7 +29,6 @@ export default function UnlockScreen() {
   if (auth.mode === 'loading') {
     return (
       <View style={styles.container}>
-        <LinearGradient colors={['#020204', '#08080C']} style={StyleSheet.absoluteFillObject} />
         <Text style={styles.statusText}>INITIALIZING ENCLAVE...</Text>
       </View>
     );
@@ -37,7 +36,6 @@ export default function UnlockScreen() {
 
   return (
     <Animated.View style={[styles.container, { opacity: fadeAnim }]}>
-      <LinearGradient colors={['#020204', '#08080C']} style={StyleSheet.absoluteFillObject} />
       <View style={styles.ambientGlow} />
 
       <Animated.View style={[styles.inner, { transform: [{ translateX: auth.shakeAnim }] }]}>
@@ -46,12 +44,12 @@ export default function UnlockScreen() {
         </View>
 
         <Text style={styles.title}>
-          {auth.mode === 'setup' ? 'CREATE MASTER PIN' :
-           auth.mode === 'setup_confirm' ? 'CONFIRM MASTER PIN' :
+          {auth.mode === 'setup' ? 'CREATE MASTER PASSWORD' :
+           auth.mode === 'setup_confirm' ? 'CONFIRM MASTER PASSWORD' :
            auth.mode === 'locked' ? 'VAULT LOCKED' :
            auth.mode === 'mnemonic_show' ? 'RECOVERY SEED' :
            auth.mode === 'recover' ? 'ENTER RECOVERY PHRASE' :
-           'ENTER MASTER PIN'}
+           'ENTER MASTER PASSWORD'}
         </Text>
 
         {auth.mode === 'locked' ? (
@@ -70,15 +68,15 @@ export default function UnlockScreen() {
           <>
             <PinDots
               length={auth.mode === 'setup_confirm' ? auth.confirmPin.length : auth.pin.length}
-              max={auth.PIN_LENGTH}
+              max={auth.MIN_PASSWORD_LENGTH}
               isError={!!auth.error}
             />
 
             {auth.error ? <Text style={styles.errorText}>{auth.error}</Text> : null}
-            {auth.mode === 'setup_confirm' ? <Text style={styles.hint}>Re-enter your PIN to confirm</Text> : null}
+            {auth.mode === 'setup_confirm' ? <Text style={styles.hint}>Re-enter your password to confirm</Text> : null}
             {auth.mode === 'unlock' && auth.pin.length === 0 ? (
               <TouchableOpacity onPress={() => auth.setMode('recover')}>
-                <Text style={styles.forgotLink}>Forgot PIN? Recover with seed phrase</Text>
+                <Text style={styles.forgotLink}>Forgot Password? Recover with seed phrase</Text>
               </TouchableOpacity>
             ) : null}
 
@@ -89,11 +87,11 @@ export default function UnlockScreen() {
                     <TouchableOpacity
                       key={ci}
                       style={styles.pinKey}
-                      onPress={() => digit === '⌫' ? auth.handleBackspace() : digit ? auth.handleKeyPress(digit) : null}
+                      onPress={() => digit === 'âŒ«' ? auth.handleBackspace() : digit ? auth.handleKeyPress(digit) : null}
                       disabled={auth.processing || !digit}
                       activeOpacity={0.6}
                     >
-                      {digit === '⌫' ? (
+                      {digit === 'âŒ«' ? (
                         <Ionicons name="backspace-outline" size={22} color="#8E8E93" />
                       ) : digit ? (
                         <Text style={styles.pinKeyText}>{digit}</Text>
@@ -123,7 +121,7 @@ export default function UnlockScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#020204', justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' },
   ambientGlow: { position: 'absolute', top: -height * 0.2, right: -width * 0.3, width: width * 0.8, height: width * 0.8, borderRadius: width * 0.4, backgroundColor: 'rgba(0,240,255,0.01)' },
   inner: { alignItems: 'center', paddingHorizontal: 32, width: '100%' },
   iconRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 1, borderColor: 'rgba(0,240,255,0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 24 },
