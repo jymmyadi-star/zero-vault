@@ -11,7 +11,7 @@ wsStatsRouter.get('/stats', (_req, res) => {
   res.json(getConnectionStats());
 });
 
-const WebSocket = require('ws');
+import { WebSocketServer } from 'ws';
 
 const WS_RATE_LIMIT_MAX = 30;
 const WS_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -37,7 +37,7 @@ interface AuthenticatedUpgradeRequest extends IncomingMessage {
 }
 
 export function attachWebSocketServer(httpServer: HttpServer): any {
-  const wss = new WebSocket.Server({
+  const wss = new WebSocketServer({
     noServer: true,
     maxPayload: 1024 * 1024,
   });
