@@ -287,7 +287,7 @@ export async function importVaultSeed(pin: string, seed: VaultSeed): Promise<Vau
       const macPayload = seed.deviceSalt + seed.wrappedVaultKey + seed.wrappedCipherKey + seed.wrappedSignKey + seed.pinVerifySalt + seed.pinVerifyHash;
       const expectedMac = computeSyncSignature(macPayload, null, signKey);
       if (!timingSafeCompare(expectedMac, seed.seedMac)) {
-        console.warn('[VaultKeychain] Seed MAC verification failed — seed may have been tampered with in transit');
+        throw new Error('SEED_MAC_VERIFICATION_FAILED: The vault seed may have been tampered with in transit.');
       }
     }
 
