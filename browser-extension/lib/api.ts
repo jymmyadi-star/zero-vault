@@ -1,6 +1,6 @@
 import type { SyncLogEntry, PushChange, VaultSeedData } from './types';
 
-let API_URL = 'https://13-61-144-124.nip.io';
+let API_URL = 'https://ipmlypfufuntffgttldl.supabase.co';
 let isApiUrlLoaded = false;
 
 // Ambient declaration for build-time `process.env` injection (esbuild `define`)
@@ -43,17 +43,31 @@ export function setToken(token: string | null): void {
   cachedToken = token;
 }
 
+// Map API paths to Supabase Edge Function URLs
+function apiPathToFunction(path: string): string {
+  const mapping: Record<string, string> = {
+    '/auth/session': '/functions/v1/auth-signin',
+    '/sync/push': '/functions/v1/sync-push',
+    '/sync/pull': '/functions/v1/sync-pull',
+    '/vault/seed': '/functions/v1/vault-seed',
+  };
+  if (path.startsWith('/vault/seed/pair/')) {
+    return `/functions/v1/pairing/${path.replace('/vault/seed/pair/', '')}`;
+  }
+  return mapping[path] || path;
+}
+
 async function apiFetch<T>(
   path: string,
   options: { method?: string; body?: unknown; query?: Record<string, string> } = {},
 ): Promise<T> {
   const token = getToken();
-  if (!token && !path.includes('/auth/signin') && !path.includes('/auth/anonymous')) {
+  if (!token && !path.includes('/auth/signin')) {
     throw new Error('NOT_AUTHENTICATED');
   }
 
   const baseUrl = await getApiUrl();
-  let url = `${baseUrl}/api${path}`;
+  let url = `${baseUrl}${apiPathToFunction(path)}`;
   if (options.query) {
     url += '?' + new URLSearchParams(options.query).toString();
   }
@@ -83,7 +97,7 @@ export const api = {
 
   async signIn(email: string, password: string): Promise<{ accessToken: string }> {
     const baseUrl = await getApiUrl();
-    const res = await fetch(`${baseUrl}/api/auth/signin`, {
+    const res = await fetch(`${baseUrl}/functions/v1/auth-signin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),

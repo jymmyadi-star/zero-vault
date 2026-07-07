@@ -4,27 +4,27 @@ import { supabase } from '../supabase';
 const API_URL = (() => {
   const url = (process.env as any).EXPO_PUBLIC_ZEROVAULT_API_URL
     || process.env.ZEROVAULT_API_URL
-    || 'http://localhost:4000';
-  if (!url) throw new Error('ZEROVAULT_API_URL environment variable is required. Set EXPO_PUBLIC_ZEROVAULT_API_URL in your .env file.');
-  if (!url.startsWith('https://') && !url.startsWith('http://localhost') && !url.startsWith('http://13.61.144.124') && !url.startsWith('http://192.168.') && !url.startsWith('http://10.')) {
-    throw new Error('ZEROVAULT_API_URL must use HTTPS in production');
-  }
-  try {
-    const parsed = new URL(url);
-    if (parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1' || parsed.hostname.endsWith('.local')) {
-      return url;
-    }
-    if (!/^https?:\/\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*(:\d{1,5})?(\/.*)?$/.test(url)) {
-      throw new Error('ZEROVAULT_API_URL has an invalid or suspicious format');
-    }
-  } catch {
-    throw new Error('ZEROVAULT_API_URL must be a valid URL');
-  }
+    || 'https://ipmlypfufuntffgttldl.supabase.co';
   return url;
 })();
 
-let ws: any = null;
-let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+// Map legacy API paths to Supabase Edge Functions
+function toFunctionUrl(apiPath: string): string {
+  const mapping: Record<string, string> = {
+    '/auth/session': '/functions/v1/auth-signin',
+    '/auth/signin': '/functions/v1/auth-signin',
+    '/sync/push': '/functions/v1/sync-push',
+    '/sync/pull': '/functions/v1/sync-pull',
+    '/vault/seed': '/functions/v1/vault-seed',
+  };
+  // Handle /vault/seed/pair/:id
+  if (apiPath.startsWith('/vault/seed/pair/')) {
+    const pairingId = apiPath.replace('/vault/seed/pair/', '');
+    return `/functions/v1/pairing/${pairingId}`;
+  }
+  return mapping[apiPath] || apiPath;
+}
+
 let listeners: Array<(type: string, data: any) => void> = [];
 
 let cachedToken: string | null = null;
@@ -82,7 +82,7 @@ async function apiFetch<T>(
     throw new Error('NOT_AUTHENTICATED: No valid session');
   }
 
-  let url = `${API_URL}/api${path}`;
+  let url = `${API_URL}${toFunctionUrl(path)}`;
   if (options.query) {
     const params = new URLSearchParams(options.query).toString();
     url += `?${params}`;
@@ -248,69 +248,12 @@ export const apiClient = {
 };
 
 export function connectWebSocket(): void {
-  disconnectWebSocket();
-
-  getAccessToken().then((token) => {
-    if (!token) return;
-
-    const url = apiClient.getUrl().replace(/^https/, 'wss').replace(/^http/, 'ws');
-    const wsUrl = `${url}/ws?token=${encodeURIComponent(token)}`;
-
-    try {
-      ws = new (WebSocket as any)(wsUrl);
-
-      ws.onopen = () => {
-        Logger.info('WebSocket connected to API server', { module: 'ApiClient' });
-        if (wsReconnectTimer) {
-          clearTimeout(wsReconnectTimer);
-          wsReconnectTimer = null;
-        }
-      };
-
-      ws.onmessage = (event: any) => {
-        try {
-          const msg = JSON.parse(event.data as string);
-          for (const listener of listeners) {
-            listener(msg.type, msg.data);
-          }
-        } catch {}
-      };
-
-      ws.onclose = (event: any) => {
-        Logger.info('WebSocket closed', { module: 'ApiClient', code: event?.code });
-        ws = null;
-        scheduleReconnect();
-      };
-
-      ws.onerror = () => {
-        ws?.close();
-      };
-    } catch (err) {
-      Logger.warn('WebSocket connection failed', { module: 'ApiClient' });
-      scheduleReconnect();
-    }
-  });
+  // WebSocket push not available with Supabase Edge Functions.
+  // Sync relies on background polling via sync-scheduler.
 }
 
 export function disconnectWebSocket(): void {
-  if (wsReconnectTimer) {
-    clearTimeout(wsReconnectTimer);
-    wsReconnectTimer = null;
-  }
-  if (ws) {
-    try {
-      ws.close();
-    } catch {}
-    ws = null;
-  }
-}
-
-function scheduleReconnect(): void {
-  if (wsReconnectTimer) return;
-  wsReconnectTimer = setTimeout(() => {
-    wsReconnectTimer = null;
-    connectWebSocket();
-  }, 5000);
+  // No-op — WebSocket not connected.
 }
 
 export function onWsEvent(listener: (type: string, data: any) => void): () => void {
@@ -321,5 +264,5 @@ export function onWsEvent(listener: (type: string, data: any) => void): () => vo
 }
 
 export function isWsConnected(): boolean {
-  return ws !== null && (ws as any).readyState === 1;
+  return false;
 }

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, DarkTheme } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { DatabaseProvider } from '../lib/db/database-provider';
+import { DatabaseV2Provider } from '../lib/db/database-provider-v2';
 import { useVaultStore } from '../lib/store/vault-store';
 import { useAutoLock, resetActivityTimer } from '../lib/hooks/useAutoLock';
 import { enableAutofillBridge, disableAutofillBridge } from '../lib/autofill-bridge';
@@ -92,7 +92,7 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={DarkTheme}>
       <View style={{ flex: 1, backgroundColor: '#000000' }} onTouchStart={resetActivityTimer}>
-        <DatabaseProvider vaultKeyHex={vaultKeyHex!}>
+        <DatabaseV2Provider vaultKeyHex={vaultKeyHex!}>
           <StatusBar style="light" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" options={transparentContent} />
@@ -112,7 +112,7 @@ export default function RootLayout() {
           <NavigationGate />
           <PrivacyScreen />
           <SentinelGuide />
-        </DatabaseProvider>
+        </DatabaseV2Provider>
       </View>
     </ThemeProvider>
   );
