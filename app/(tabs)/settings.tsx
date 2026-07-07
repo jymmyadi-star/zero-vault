@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Switch, Dimensions, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useVaultStore } from '../../lib/store/vault-store';
 import { isSupabaseConfigured } from '../../lib/supabase';
@@ -22,7 +23,6 @@ const TIMEOUT_OPTIONS = [
   { label: '30 min', value: 30 },
   { label: 'Never', value: 0 },
 ];
-
 
 const { width, height } = Dimensions.get('window');
 
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
               const Share = require('react-native').Share;
               await Share.share({
                 message: result.data,
-                title: `ZeroVault Export â€” ${result.itemCount} items`,
+                title: `ZeroVault Export — ${result.itemCount} items`,
               });
               hapticSuccess();
             } catch (err: any) {
@@ -104,7 +104,7 @@ export default function SettingsScreen() {
           });
           hapticSuccess();
           Alert.alert(
-            'Keys Rotated âœ“',
+            'Keys Rotated ✓',
             `${result.reEncryptedCount} items re-encrypted. New epoch: ${result.newEpochId}.`,
           );
         } catch (err: any) {
@@ -119,11 +119,10 @@ export default function SettingsScreen() {
     );
   };
 
-
   const handlePurgeAllData = () => {
     hapticWarning();
     Alert.alert(
-      'âš ï¸ PURGE ALL DATA',
+      '⚠️ PURGE ALL DATA',
       'This action is irreversible and complies with GDPR Right to Be Forgotten. All cryptographic items, master credentials, salts, and local storage configurations will be completely and permanently wiped from this device.',
       [
         { text: 'Cancel', style: 'cancel' },
@@ -131,25 +130,37 @@ export default function SettingsScreen() {
           text: 'Confirm Purge', 
           style: 'destructive', 
           onPress: async () => {
+            hapticWarning();
             try {
-              hapticWarning();
               await purgeDatabase();
               await purgeVault();
-              const keys = kv.getAllKeys();
-              for (const key of keys) {
-                kv.delete(key);
-              }
-              const { lock: storeLock, setStatus } = useVaultStore.getState();
-              storeLock();
-              setStatus('setup_required');
-              await hapticSuccess();
-              Alert.alert('Purge Successful', 'All data has been wiped from this device. Zero Vault has restarted in genesis mode.');
             } catch (err: any) {
               Alert.alert('Purge Failure', `Failed to purge: ${err.message}`);
+              return;
             }
+
+            const keys = kv.getAllKeys();
+            for (const key of keys) {
+              kv.delete(key);
+            }
+
+            Alert.alert(
+              'Purge Successful',
+              'All data has been wiped from this device. The app will restart in genesis mode.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    const { lock } = useVaultStore.getState();
+                    lock();
+                    useVaultStore.getState().setStatus('setup_required');
+                  },
+                },
+              ],
+            );
           } 
         },
-      ]
+      ],
     );
   };
 
@@ -210,7 +221,7 @@ export default function SettingsScreen() {
     if (value) {
       Alert.alert(
         'Enable Cloud Backup',
-        'Your encrypted vault data will be synced to the cloud using an anonymous account. The server never sees your plaintext data â€” everything is encrypted with your Master Password before leaving this device.',
+        'Your encrypted vault data will be synced to the cloud using an anonymous account. The server never sees your plaintext data — everything is encrypted with your Master Password before leaving this device.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
@@ -262,15 +273,12 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
 
-      {/* Pure Black Background with Perfectly Smooth Vignette Glow */}
       <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {/* 1. Vertical Band (Transitions from Purple at bottom to Indigo/Blue at the top) */}
         <LinearGradient 
-          colors={['#000000', '#040B1A', '#0A113A', '#270E4D', '#0C041A', '#000000']} 
+          colors={['#000000', '#1A040B', '#3A0A11', '#4D0E1A', '#1A040B', '#000000']} 
           locations={[0, 0.2, 0.45, 0.75, 0.95, 1]}
           style={StyleSheet.absoluteFillObject} 
         />
-        {/* 2. Left Black Fade (Squeezes light inward to make it narrower) */}
         <LinearGradient 
           colors={['#000000', '#000000', 'transparent']} 
           locations={[0, 0.4, 1]}
@@ -278,7 +286,6 @@ export default function SettingsScreen() {
           end={{ x: 1, y: 0 }}
           style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%' }} 
         />
-        {/* 3. Right Black Fade (Squeezes light inward to make it narrower) */}
         <LinearGradient 
           colors={['transparent', '#000000', '#000000']} 
           locations={[0, 0.6, 1]}
@@ -299,6 +306,8 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>[ SECURITY PROFILES ]</Text>
           
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity
               style={styles.row}
               onPress={() => router.push('/change-pin')}
@@ -327,7 +336,6 @@ export default function SettingsScreen() {
 
             <View style={styles.divider} />
 
-            {/* Auto-Lock Timeout */}
             <View style={[styles.row, { flexDirection: 'column', alignItems: 'flex-start', paddingVertical: 16 }]}>
               <View style={[styles.rowLeft, { marginBottom: 12 }]}>
                 <Ionicons name="timer-outline" size={20} color="#FFFFFF" />
@@ -366,10 +374,49 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* SECTION: CLOUD SYNC */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>[ CLOUD BACKUP & EXTENSION LINK ]</Text>
+          <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
+            
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <Ionicons name="cloud-outline" size={20} color={syncEnabled ? '#00F0FF' : '#8E8E93'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.rowLabel}>Enable Cloud Sync</Text>
+                  <Text style={styles.syncStatusText}>ALLOWS PAIRING WITH BROWSER EXTENSION</Text>
+                </View>
+              </View>
+              <Switch
+                value={syncEnabled}
+                onValueChange={(val) => {
+                  import('../../lib/consent-manager').then(m => m.consentManager.grant('cloud_sync').then(() => handleToggleSync(val)));
+                }}
+                trackColor={{ false: 'rgba(255, 255, 255, 0.05)', true: 'rgba(0, 240, 255, 0.3)' }}
+                thumbColor={syncEnabled ? '#00F0FF' : '#52525b'}
+              />
+            </View>
+
+            <View style={styles.divider} />
+            
+            <View style={styles.row}>
+               <View style={styles.rowLeft}>
+                 <Ionicons name="swap-vertical" size={20} color="#FFFFFF" />
+                 <Text style={styles.rowLabel}>Sync Status</Text>
+               </View>
+               <Text style={styles.rowValue}>{syncStatusLabel()}</Text>
+            </View>
+          </View>
+        </View>
+
         {/* SECTION: DATA MIGRATION */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ DATA MIGRATION ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity
               style={styles.row}
               onPress={() => router.push('/import-vault' as never)}
@@ -391,6 +438,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ DATA PORTABILITY ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity
               style={[styles.row, { opacity: isExporting ? 0.5 : 1 }]}
               onPress={() => handleExport('bitwarden-json')}
@@ -401,7 +450,7 @@ export default function SettingsScreen() {
                 <Ionicons name="cloud-download-outline" size={20} color="#FFFFFF" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowLabel}>Export as Bitwarden JSON</Text>
-                  <Text style={styles.syncStatusText}>COMPATIBLE WITH BITWARDEN â€¢ 1PASSWORD â€¢ KEEPASS</Text>
+                  <Text style={styles.syncStatusText}>COMPATIBLE WITH BITWARDEN • 1PASSWORD • KEEPASS</Text>
                 </View>
               </View>
               {isExporting
@@ -421,7 +470,7 @@ export default function SettingsScreen() {
                 <Ionicons name="document-text-outline" size={20} color="#FFFFFF" />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.rowLabel}>Export as CSV</Text>
-                  <Text style={styles.syncStatusText}>GENERIC FORMAT â€¢ EXCEL â€¢ GOOGLE SHEETS</Text>
+                  <Text style={styles.syncStatusText}>GENERIC FORMAT • EXCEL • GOOGLE SHEETS</Text>
                 </View>
               </View>
               {isExporting
@@ -438,6 +487,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ CRYPTOGRAPHIC SECURITY ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity
               style={[styles.row, { opacity: isRotating ? 0.5 : 1 }]}
               onPress={handleRotateKeys}
@@ -451,7 +502,7 @@ export default function SettingsScreen() {
                   <Text style={styles.syncStatusText}>
                     {isRotating && rotationProgress
                       ? `RE-ENCRYPTING ${rotationProgress.current}/${rotationProgress.total}...`
-                      : 'GENERATES NEW CIPHERKEY â€¢ SIGNKEY â€¢ RE-ENCRYPTS ALL ITEMS'}
+                      : 'GENERATES NEW CIPHERKEY • SIGNKEY • RE-ENCRYPTS ALL ITEMS'}
                   </Text>
                 </View>
               </View>
@@ -468,6 +519,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ COMPILER INFO ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <Ionicons name="shield-checkmark-outline" size={20} color="#FFFFFF" />
@@ -482,6 +535,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ COMPLIANCE & PRIVACY ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity
               style={styles.row}
               onPress={() => router.push('/compliance' as never)}
@@ -545,6 +600,8 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>[ COMPLIANCE & PRIVACY ]</Text>
           <View style={styles.pod}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <LinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
             <TouchableOpacity style={styles.row} onPress={handlePurgeAllData} activeOpacity={0.7}>
               <View style={styles.rowLeft}>
                 <Ionicons name="trash-bin-outline" size={20} color="#FF3B30" />
@@ -581,7 +638,7 @@ const styles = StyleSheet.create({
   hudTag: {
     fontSize: 9,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#8E8E93',
+    color: '#FF0033',
     letterSpacing: 2,
     marginBottom: 6,
   },
@@ -597,14 +654,14 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 10,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#8E8E93',
+    color: '#FF0033',
     fontWeight: '700',
     letterSpacing: 1.5,
     marginBottom: 12,
     paddingLeft: 4,
   },
   pod: {
-    backgroundColor: '#0D0D12',
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.03)',
     borderRadius: 24,
@@ -619,7 +676,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+    backgroundColor: 'rgba(255, 0, 50, 0.15)',
   },
   rowLeft: {
     flexDirection: 'row',
@@ -635,13 +692,13 @@ const styles = StyleSheet.create({
   rowValue: {
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#8E8E93',
+    color: '#FF0033',
     fontWeight: '700',
   },
   syncStatusText: {
     fontSize: 9,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#8E8E93',
+    color: '#FF0033',
     fontWeight: '700',
     marginTop: 3,
     letterSpacing: 0.5,
@@ -670,7 +727,7 @@ const styles = StyleSheet.create({
   timeoutChipText: {
     fontSize: 11,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    color: '#8E8E93',
+    color: '#FF0033',
     fontWeight: '700',
     letterSpacing: 0.5,
   },

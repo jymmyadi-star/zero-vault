@@ -6,7 +6,7 @@ const API_URL = (() => {
     || process.env.ZEROVAULT_API_URL
     || 'http://localhost:4000';
   if (!url) throw new Error('ZEROVAULT_API_URL environment variable is required. Set EXPO_PUBLIC_ZEROVAULT_API_URL in your .env file.');
-  if (!url.startsWith('https://') && !url.startsWith('http://localhost')) {
+  if (!url.startsWith('https://') && !url.startsWith('http://localhost') && !url.startsWith('http://13.61.144.124') && !url.startsWith('http://192.168.') && !url.startsWith('http://10.')) {
     throw new Error('ZEROVAULT_API_URL must use HTTPS in production');
   }
   try {
@@ -75,7 +75,7 @@ function invalidateToken(): void {
 
 async function apiFetch<T>(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'DELETE' | 'HEAD'; body?: unknown; query?: Record<string, string> } = {},
+  options: { method?: 'GET' | 'POST' | 'DELETE' | 'HEAD'; body?: unknown; query?: Record<string, string>; isRetry?: boolean } = {},
 ): Promise<T> {
   const token = await getAccessToken();
   if (!token) {
@@ -99,8 +99,20 @@ async function apiFetch<T>(
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !options.isRetry) {
     invalidateToken();
+    if (supabase) {
+      try {
+        const { data, error } = await supabase.auth.refreshSession();
+        if (!error && data.session) {
+          cachedToken = data.session.access_token;
+          cachedTokenExpiresAt = decodeJwtExp(cachedToken);
+          return apiFetch(path, { ...options, isRetry: true });
+        }
+      } catch {}
+    }
+    throw new Error('UNAUTHORIZED: Session expired');
+  } else if (response.status === 401) {
     throw new Error('UNAUTHORIZED: Session expired');
   }
 

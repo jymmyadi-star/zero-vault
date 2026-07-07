@@ -7,6 +7,9 @@ import { connectWebSocket, disconnectWebSocket } from './api-client';
 import { Logger } from '../logger';
 import { kv } from '../storage';
 import { consentManager } from '../consent-manager';
+import { deriveDeviceCredentials } from '../crypto/crypto-utils';
+import * as SecureStore from 'expo-secure-store';
+import { pushVaultSeed } from './identity';
 
 const SYNC_ENABLED_KEY = 'zerovault_sync_enabled';
 
@@ -23,13 +26,28 @@ export async function enableSync(): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      const { error: anonErr } = await supabase.auth.signInAnonymously();
-      if (anonErr) {
-        Logger.warn('[Sync] Anonymous sign-in failed', {
-          module: 'SyncConfig',
-          error: anonErr.message,
-        });
+      const pairingId = await SecureStore.getItemAsync('zerovault_pairing_id_v3');
+      if (!pairingId) {
+        Logger.warn('[Sync] No pairing ID — cannot enable deterministic sync', { module: 'SyncConfig' });
         return false;
+      }
+      const creds = deriveDeviceCredentials(pairingId);
+      // Try sign-in first (existing user), fallback to sign-up
+      let { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: creds.email,
+        password: creds.password,
+      });
+      if (signInError) {
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: creds.email,
+          password: creds.password,
+        });
+        if (signUpError || !signUpData.user) {
+          Logger.warn(`[Sync] Deterministic sign-in failed: ${signUpError?.message || signInError?.message}`, {
+            module: 'SyncConfig',
+          });
+          return false;
+        }
       }
     }
 
@@ -43,6 +61,54 @@ export async function enableSync(): Promise<boolean> {
     useVaultStore.getState().setSyncEnabled(true);
 
     connectWebSocket();
+
+    // Push the seed to the server so the extension can download it
+    await pushVaultSeed();
+
+    // ENQUEUE ALL EXISTING ITEMS FOR INITIAL SYNC
+    try {
+      const { getDatabase } = require('../db');
+      const { decryptVaultItem } = require('../services/vault-service');
+      const { enqueueToBacklog } = require('./push');
+      
+      const db = getDatabase();
+      const items = await db.get('vault_items').query().fetch();
+      for (const item of items) {
+        if (item.isPendingDelete || item._raw?.is_pending_delete) continue;
+        const raw = item._raw || {};
+        const decrypted = await decryptVaultItem({
+           id: item.id,
+           itemType: item.itemType ?? raw.item_type,
+           title: item.title ?? raw.title,
+           folder: item.folder ?? raw.folder ?? null,
+           payloadCiphertext: item.payloadCiphertext ?? raw.payload_ciphertext,
+           favorite: item.favorite ?? raw.favorite ?? false,
+           icon: item.icon ?? raw.icon ?? null,
+           urlHint: item.urlHint ?? raw.url_hint ?? null,
+           lastUsedAt: item.lastUsedAt ?? raw.last_used_at ?? null,
+           createdAt: item.createdAt ?? raw.created_at ?? 0,
+           updatedAt: item.updatedAt ?? raw.updated_at ?? 0,
+        });
+        
+        if (decrypted) {
+           await enqueueToBacklog(item.id, 'vaultItem', 'INSERT', {
+             id: decrypted.id,
+             itemType: decrypted.itemType,
+             title: decrypted.title,
+             payload: decrypted.payload,
+             folder: decrypted.folder,
+             icon: decrypted.icon,
+             urlHint: decrypted.urlHint,
+             favorite: decrypted.favorite,
+             lastUsedAt: decrypted.lastUsedAt,
+             createdAt: decrypted.createdAt,
+           });
+        }
+      }
+    } catch (e) {
+      Logger.warn('[Sync] Failed to enqueue initial items', { error: e });
+    }
+
     startSyncScheduler();
 
     Logger.info('Cloud sync enabled', { module: 'SyncConfig' });

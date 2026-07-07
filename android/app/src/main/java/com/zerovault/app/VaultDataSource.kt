@@ -1,7 +1,7 @@
 package com.zerovault.app
 
 import android.content.Context
-import net.sqlcipher.database.SQLiteDatabase
+import android.database.sqlite.SQLiteDatabase
 import org.json.JSONObject
 
 class VaultDataSource(private val context: Context) {
@@ -61,13 +61,8 @@ class VaultDataSource(private val context: Context) {
 
     private fun openDatabase(): SQLiteDatabase? {
         return try {
-            // The database key is stored in Android Keystore via expo-secure-store
-            // For autofill, we use a shared key stored in EncryptedSharedPreferences
-            val prefs = context.getSharedPreferences("zerovault_autofill", Context.MODE_PRIVATE)
-            val dbKey = prefs.getString("db_key", null) ?: return null
-
             val dbPath = context.getDatabasePath("watermelon.db").absolutePath
-            val db = SQLiteDatabase.openDatabase(dbPath, dbKey, null, 0)
+            val db = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READONLY)
 
             // Try to query to verify key
             db.rawQuery("SELECT count(*) FROM vault_items", null).use { cursor ->

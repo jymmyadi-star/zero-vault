@@ -6,16 +6,21 @@
  * FinalizationRegistry is unavailable (React Native Hermes).
  */
 
-const registry: { register: (target: object, heldValue: Uint8Array) => void; unregister: (token: Uint8Array) => void } =
-  typeof FinalizationRegistry !== 'undefined'
-    ? new FinalizationRegistry<Uint8Array>((buf: Uint8Array) => {
-        buf.fill(0);
-      })
-    : { register: () => {}, unregister: () => {} };
+type RegistryType = { register: (target: object, heldValue: Uint8Array, unregisterToken?: object) => void; unregister: (token: object) => void };
 
-function registerForCleanup(buf: Uint8Array): Uint8Array {
-  registry.register({ __buf: buf } as any, buf);
-  return buf;
+let _registry: RegistryType | null = null;
+
+function getRegistry(): RegistryType {
+  if (_registry) return _registry;
+  try {
+    const F = (globalThis as any).FinalizationRegistry;
+    if (F) {
+      _registry = new F((buf: Uint8Array) => { buf.fill(0); });
+      return _registry!;
+    }
+  } catch {}
+  _registry = { register: () => {}, unregister: () => {} };
+  return _registry;
 }
 
 export class SecureBuffer {
@@ -23,7 +28,8 @@ export class SecureBuffer {
   private _disposed = false;
 
   private constructor(buf: Uint8Array) {
-    this._buf = registerForCleanup(buf);
+    this._buf = buf;
+    getRegistry().register(this, buf, buf);
   }
 
   static from(src: Uint8Array): SecureBuffer {
@@ -79,7 +85,7 @@ export class SecureBuffer {
 
   dispose(): void {
     if (this._disposed || !this._buf) return;
-    registry.unregister(this._buf);
+    getRegistry().unregister(this._buf);
     this._buf.fill(0);
     this._buf = null;
     this._disposed = true;

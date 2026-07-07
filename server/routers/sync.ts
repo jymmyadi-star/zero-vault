@@ -9,6 +9,41 @@ import { notifySyncAvailable } from '../ws/handlers';
 
 const router = Router();
 
+// Simple in-memory Mutex to prevent race conditions during concurrent push per user.
+class Mutex {
+  private queue: Array<() => void> = [];
+  private locked = false;
+
+  async acquire(): Promise<() => void> {
+    return new Promise((resolve) => {
+      if (!this.locked) {
+        this.locked = true;
+        resolve(this.release.bind(this));
+      } else {
+        this.queue.push(() => resolve(this.release.bind(this)));
+      }
+    });
+  }
+
+  private release() {
+    if (this.queue.length > 0) {
+      const next = this.queue.shift();
+      next?.();
+    } else {
+      this.locked = false;
+    }
+  }
+}
+
+const syncLocks = new Map<string, Mutex>();
+
+function getSyncLock(userId: string): Mutex {
+  if (!syncLocks.has(userId)) {
+    syncLocks.set(userId, new Mutex());
+  }
+  return syncLocks.get(userId)!;
+}
+
 const syncChangeSchema = z.object({
   entityId: z.string().min(1),
   entityType: z.literal('vaultItem'),
@@ -39,6 +74,10 @@ router.post('/push', async (req, res) => {
     res.status(400).json({ ...API_ERRORS.VALIDATION_ERROR, details: body.error.issues });
     return;
   }
+
+  const userId = req.user.id;
+  const lock = getSyncLock(userId);
+  const release = await lock.acquire();
 
   try {
     const supabase = getSupabaseForUser(req.userToken!);
@@ -139,6 +178,8 @@ router.post('/push', async (req, res) => {
   } catch (err: any) {
     Logger.error('Sync push error', err);
       res.status(500).json(API_ERRORS.INTERNAL_ERROR);
+  } finally {
+    release();
   }
 });
 

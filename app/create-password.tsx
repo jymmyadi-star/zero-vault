@@ -1,10 +1,11 @@
-﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InputPod, PasswordField } from '../components';
+import { RedTunnelBackground } from '../components/RedTunnelBackground';
 import { createVaultItem, updateVaultItem, getVaultItemById } from '../lib/services/vault-service';
 import { generatePassword, calculateEntropy, entropyLabel } from '../lib/crypto/password-generator';
 
@@ -47,7 +48,7 @@ export default function CreatePasswordScreen() {
 
   useEffect(() => {
     const loadEditItem = async () => {
-      const params = router.canGoBack() ? {} : (globalThis as any).__zerovault_lastParams || {};
+      const params = (globalThis as any).__zerovault_lastParams || {};
       const id = params.editId as string;
       if (!id) return;
 
@@ -154,12 +155,7 @@ export default function CreatePasswordScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Cyber Grid & Ambient Glows */}
-      <View style={styles.gridOverlay}>
-        <LinearGradient colors={['rgba(0, 240, 255, 0.02)', 'transparent']} style={StyleSheet.absoluteFillObject} />
-      </View>
-      <View style={styles.ambientGlow} />
+      <RedTunnelBackground />
 
       {/* Floating HUD Header */}
       <Animated.View style={[

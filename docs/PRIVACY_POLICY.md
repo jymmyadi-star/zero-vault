@@ -16,7 +16,7 @@
 
 ## 2. What We CANNOT Access (Zero-Knowledge Content)
 
-All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305 encryption with keys derived from your PIN via Argon2id.
+All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305 encryption with keys derived from your PIN via PBKDF2-HMAC-SHA512.
 
 **Under this architecture, we do NOT and CANNOT collect, access, or process:**
 - Your passwords, usernames, or login credentials
@@ -26,7 +26,7 @@ All content you store in the Application — passwords, seed phrases, notes, TOT
 - The URLs or services associated with your stored items
 - Your organizational folders, categories, or labels you create
 - Your recovery phrase (generated and stored on your device)
-- Your PIN (verified locally via Argon2id, never transmitted)
+- Your PIN (verified locally via PBKDF2-HMAC-SHA512, never transmitted)
 
 All such content is encrypted ciphertext to us — random data indistinguishable from noise.
 
@@ -88,7 +88,7 @@ Should any supervisory authority determine otherwise, any special category data 
 ## 6. Data Storage and Encryption
 
 **Architecture:**
-- **At rest (device):** XChaCha20-Poly1305, Argon2id key derivation, keys stored in hardware-backed secure storage
+- **At rest (device):** XChaCha20-Poly1305, PBKDF2-HMAC-SHA512 key derivation, keys stored in hardware-backed secure storage
 - **In transit:** TLS 1.3 for all network communications
 - **At rest (server):** Data is already ciphertext from client-side encryption — we apply no additional server-side encryption as the data is already cryptographically protected
 - **Memory safety:** SecureBuffer with zero-on-dispose for all sensitive plaintext during key operations
@@ -173,7 +173,7 @@ In the event of a personal data breach (GDPR Art. 33), we will notify the releva
 
 | Category | Implementation |
 |----------|---------------|
-| **Encryption** | XChaCha20-Poly1305 (RFC 8439), Argon2id key derivation |
+| **Encryption** | XChaCha20-Poly1305 (RFC 8439), PBKDF2-HMAC-SHA512 key derivation |
 | **Authentication** | PIN-based with biometric unlock (FaceID/TouchID) |
 | **Key management** | 256-bit random keys, BIP-39 mnemonic backup, no keys on server |
 | **Memory** | SecureBuffer zero-on-dispose, Result<T,E> safe API pattern |

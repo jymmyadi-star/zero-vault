@@ -46,10 +46,10 @@ router.post('/seed', async (req, res) => {
       seed_mac: body.data.seedMac || '',
       pairing_id: body.data.pairingId || null,
       updated_at: new Date().toISOString(),
-    });
+    }, { onConflict: 'user_id' });
 
     if (error) {
-      Logger.error('Vault seed push failed', error, { userId: req.user.id });
+      Logger.error(`Vault seed push failed: ${JSON.stringify(error)}`, error, { userId: req.user.id });
       res.status(502).json(API_ERRORS.SUPABASE_ERROR);
       return;
     }

@@ -10,12 +10,15 @@ interface VaultState {
   vaultKey: SecureBuffer | null;
   cipherKey: SecureBuffer | null;
   signKey: SecureBuffer | null;
+  vaultKeyHex: string | null;
   isOffline: boolean;
   syncEnabled: boolean;
   syncStatus: SyncStatus;
   lastSyncAt: number | null;
+  tempMnemonic: string | null;
 
   setStatus: (status: VaultStatus) => void;
+  setTempMnemonic: (mnemonic: string | null) => void;
   unlock: (keySet: VaultKeySet) => void;
   lock: () => void;
   setIsOffline: (offline: boolean) => void;
@@ -29,19 +32,29 @@ export const useVaultStore = create<VaultState>((set) => ({
   vaultKey: null,
   cipherKey: null,
   signKey: null,
+  vaultKeyHex: null,
   isOffline: false,
   syncEnabled: false,
   syncStatus: 'idle',
   lastSyncAt: null,
+  tempMnemonic: null,
 
   setStatus: (status) => set({ status }),
+  setTempMnemonic: (tempMnemonic) => set({ tempMnemonic }),
 
   unlock: (keySet) => {
+    const state = useVaultStore.getState();
+    if (state.vaultKey && state.vaultKey !== keySet.vaultKey) state.vaultKey.dispose();
+    if (state.cipherKey && state.cipherKey !== keySet.cipherKey) state.cipherKey.dispose();
+    if (state.signKey && state.signKey !== keySet.signKey) state.signKey.dispose();
+    
+    const hex = keySet.vaultKey.toHex();
     set({
       status: 'unlocked',
       vaultKey: keySet.vaultKey,
       cipherKey: keySet.cipherKey,
       signKey: keySet.signKey,
+      vaultKeyHex: hex,
     });
   },
 
@@ -55,6 +68,7 @@ export const useVaultStore = create<VaultState>((set) => ({
       vaultKey: null,
       cipherKey: null,
       signKey: null,
+      vaultKeyHex: null,
       syncEnabled: false,
       syncStatus: 'idle',
     });

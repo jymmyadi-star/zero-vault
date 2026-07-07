@@ -6,13 +6,14 @@ import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-const anonSignInSchema = z.object({
-  deviceId: z.string().optional(),
+const signInSchema = z.object({
+  email: z.string().email().or(z.string().endsWith('.local')).or(z.string().endsWith('.zerovault.local')),
+  password: z.string().min(32),
 });
 
 const anonRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 10,
+  max: 1000,
   keyGenerator: (req) => req.ip || 'unknown',
   standardHeaders: true,
   message: { ...API_ERRORS.RATE_LIMITED, message: 'Too many anonymous sign-ins from this IP. Try again later.' },
@@ -26,16 +27,16 @@ router.get('/health', (_req, res) => {
   });
 });
 
-router.post('/anonymous', anonRateLimit, async (req, res) => {
+router.post('/signin', async (req, res) => {
   try {
-    const body = anonSignInSchema.safeParse(req.body);
+    const body = signInSchema.safeParse(req.body);
     if (!body.success) {
       res.status(400).json({ ...API_ERRORS.VALIDATION_ERROR, details: body.error.issues });
       return;
     }
 
-    const { signInAnonymous } = await import('../services/supabase');
-    const result = await signInAnonymous();
+    const { signInDeterministic } = await import('../services/supabase');
+    const result = await signInDeterministic(body.data.email, body.data.password);
 
     res.json({
       accessToken: result.session.access_token,
@@ -44,7 +45,7 @@ router.post('/anonymous', anonRateLimit, async (req, res) => {
       userId: result.user.id,
     });
   } catch (err: any) {
-    Logger.error('Anonymous sign-in failed', err);
+    Logger.error('Sign-in failed', err);
     res.status(502).json(API_ERRORS.SUPABASE_ERROR);
   }
 });

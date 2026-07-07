@@ -7,6 +7,9 @@
 import { kv } from './storage';
 import { Logger } from './logger';
 import * as Crypto from 'expo-crypto';
+import { hmac } from '@noble/hashes/hmac.js';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from './crypto/crypto-utils';
 
 export type ConsentType = 'terms_of_use' | 'privacy_policy' | 'cloud_sync' | 'analytics' | 'crash_reporting';
 
@@ -43,7 +46,9 @@ async function getHmacKey(): Promise<string> {
 
 async function sign(payload: string): Promise<string> {
   const key = await getHmacKey();
-  return await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, key + payload);
+  const keyBytes = new TextEncoder().encode(key);
+  const payloadBytes = new TextEncoder().encode(payload);
+  return bytesToHex(hmac(sha256, keyBytes, payloadBytes));
 }
 
 class ConsentManager {

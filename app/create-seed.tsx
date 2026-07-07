@@ -1,10 +1,11 @@
-﻿import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, ScrollView, StyleSheet, Animated, Alert, Dimensions, Platform, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { InputPod } from '../components';
+import { SeedBackground } from '../components/SeedBackground';
 import { createVaultItem, updateVaultItem, getVaultItemById } from '../lib/services/vault-service';
 
 import { hapticTouch, hapticSuccess, hapticWarning } from '../lib/haptics';
@@ -141,12 +142,7 @@ export default function CreateSeedScreen() {
 
   return (
     <View style={styles.container}>
-
-      {/* Cyber Grid & Ambient Glows */}
-      <View style={styles.gridOverlay}>
-        <LinearGradient colors={['rgba(0, 240, 255, 0.02)', 'transparent']} style={StyleSheet.absoluteFillObject} />
-      </View>
-      <View style={styles.ambientGlow} />
+      <SeedBackground />
 
       {/* Floating HUD Header */}
       <Animated.View style={[

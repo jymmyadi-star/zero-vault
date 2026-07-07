@@ -3,9 +3,9 @@ const env = {
   PORT: parseInt(process.env.PORT || '4000', 10),
   HOST: process.env.HOST || '0.0.0.0',
 
-  SUPABASE_URL: process.env.SUPABASE_URL || '',
+  SUPABASE_URL: process.env.SUPABASE_URL || process.env.EXPO_PUBLIC_SUPABASE_URL || '',
   SUPABASE_SERVICE_KEY: process.env.SUPABASE_SERVICE_KEY || '',
-  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
 
   REDIS_URL: process.env.REDIS_URL || '',
   REDIS_ENABLED: process.env.REDIS_URL ? true : false,

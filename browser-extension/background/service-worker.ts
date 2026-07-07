@@ -3,6 +3,7 @@ import {
   mnemonicToSeed as bip39MnemonicToSeed,
   deriveWithHKDF,
   derivePairingId,
+  deriveDeviceCredentials,
   unwrapKey,
   decryptPayload,
   encryptPayload,
@@ -13,18 +14,20 @@ import {
   type WrappedKey,
   type EncryptedEnvelope,
 } from '../lib/crypto';
-import { storeVaultItems, setMeta, getMeta, clearVault } from '../lib/storage';
+import { SecureBuffer } from '../../lib/crypto/secure-buffer';
+import { storeVaultItems, setMeta, getMeta, clearVault, getVaultConfig, setVaultConfig, getVaultItems, decryptWithKey } from '../lib/storage';
 import type { VaultItem, DecryptedVaultItem, VaultSeedData } from '../lib/types';
 
 const AUTO_LOCK_DELAY_MINUTES = 15;
 const AUTO_LOCK_ALARM = 'zerovault-auto-lock';
 
 interface VaultState {
-  cipherKey: Uint8Array | null;
+  cipherKey: any | null;
   cipherKeyBytes: number;
-  signKey: Uint8Array | null;
+  signKey: any | null;
   signKeyBytes: number;
   syncing: boolean;
+  syncPending: boolean;
   lastSyncId: number;
   lastActivity: number;
 }
@@ -35,19 +38,15 @@ const state: VaultState = {
   signKey: null,
   signKeyBytes: 0,
   syncing: false,
+  syncPending: false,
   lastSyncId: 0,
   lastActivity: Date.now(),
 };
 
-function zeroKey(key: Uint8Array | null): void {
-  if (key && key.length > 0) {
-    key.fill(0);
-  }
-}
 
 function lockVault(): void {
-  zeroKey(state.cipherKey);
-  zeroKey(state.signKey);
+  if (state.cipherKey) state.cipherKey.dispose();
+  if (state.signKey) state.signKey.dispose();
   state.cipherKey = null;
   state.signKey = null;
   state.cipherKeyBytes = 0;
@@ -69,49 +68,94 @@ function parseWrapped(w: { iv: string; ciphertext: string; tag: string }): Wrapp
   };
 }
 
-async function unlockWithMnemonic(mnemonic: string): Promise<boolean> {
+// Helper: Derive a local wrapping key from the user's extension password
+async function deriveLocalWrapKey(password: string, saltHex: string): Promise<SecureBuffer> {
+  const encoder = new TextEncoder();
+  const passwordBytes = encoder.encode(password);
+  const salt = hexToBytes(saltHex);
+  
+  // Use PBKDF2 via WebCrypto for the local password derivation
+  const baseKey = await crypto.subtle.importKey(
+    'raw',
+    passwordBytes,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: salt,
+      iterations: 210000,
+      hash: 'SHA-256'
+    },
+    baseKey,
+    256 // 32 bytes
+  );
+
+  return SecureBuffer.from(new Uint8Array(derivedBits));
+}
+
+async function setupWithMnemonic(mnemonic: string, password: string): Promise<boolean> {
   try {
     const seed = bip39MnemonicToSeed(mnemonic);
+    const pairingId = derivePairingId(seed);
     const recoveryKey = deriveWithHKDF(seed, 'zerovault-recovery-wrap-v1');
+
+    const creds = deriveDeviceCredentials(pairingId);
+    try {
+      await api.signIn(creds.email, creds.password);
+    } catch (e: any) {
+      recoveryKey.fill(0);
+      seed.fill(0);
+      throw new Error('Sign-in failed: ' + (e?.message || 'unknown'));
+    }
 
     let seedData: VaultSeedData;
     try {
-      // Try cross-device pairing first (same mnemonic → same pairing_id)
-      const pairingId = derivePairingId(seed);
-      try {
-        seedData = await api.pullSeedByPairing(pairingId) as VaultSeedData;
-      } catch {
-        // Fallback to per-user seed (same device or manually imported)
-        seedData = await api.pullVaultSeed() as VaultSeedData;
-      }
-      if (!seedData || !seedData.wrappedCipherKey) {
-        recoveryKey.fill(0);
-        seed.fill(0);
-        return false;
-      }
-    } catch {
+      seedData = await api.pullSeedByPairing(pairingId) as VaultSeedData;
+    } catch (e: any) {
       recoveryKey.fill(0);
       seed.fill(0);
-      return false;
+      throw new Error(`pullSeed failed: ${e.message}`);
     }
 
-    seed.fill(0);
+    if (!seedData || !seedData.wrappedCipherKey) {
+      recoveryKey.fill(0);
+      seed.fill(0);
+      throw new Error(`Seed data missing or incomplete: ${JSON.stringify(seedData)}`);
+    }
 
-    const cipherKey = unwrapKey(parseWrapped({
-      iv: seedData.wrappedCipherKey.slice(0, 48),
-      ciphertext: seedData.wrappedCipherKey.slice(48, 96),
-      tag: seedData.wrappedCipherKey.slice(96) || '00',
-    }), recoveryKey);
+    const cipherKey = deriveWithHKDF(seed, 'zerovault-deterministic-cipher-v1');
 
     recoveryKey.fill(0);
+    seed.fill(0);
 
     if (!cipherKey || cipherKey.length !== 32) {
-      zeroKey(cipherKey);
-      return false;
+      if (cipherKey) cipherKey.fill(0);
+      throw new Error('cipherKey derivation failed');
     }
 
-    state.cipherKey = cipherKey;
-    state.cipherKeyBytes = cipherKey.length;
+    // Wrap the cipherKey with the local password for storage
+    const localSalt = bytesToHex(randomBytes(16));
+    const localWrapKey = await deriveLocalWrapKey(password, localSalt);
+    
+    const localWrappedCipherKey = wrapKey(cipherKey, localWrapKey.copy());
+    localWrapKey.dispose();
+
+    await setVaultConfig({
+      pairingId,
+      wrappedCipherKey: {
+        iv: bytesToHex(localWrappedCipherKey.iv),
+        ciphertext: bytesToHex(localWrappedCipherKey.ciphertext),
+        tag: bytesToHex(localWrappedCipherKey.tag)
+      },
+      localSalt
+    });
+
+    state.cipherKey = SecureBuffer.from(cipherKey);
+    state.cipherKeyBytes = 32;
     state.signKey = null;
     state.signKeyBytes = 0;
     state.lastActivity = Date.now();
@@ -119,15 +163,74 @@ async function unlockWithMnemonic(mnemonic: string): Promise<boolean> {
     await setMeta('mnemonic_hash', 'set');
     resetAutoLock();
     return true;
-  } catch {
-    return false;
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
+}
+
+async function unlockWithPassword(password: string): Promise<boolean> {
+  try {
+    const config = await getVaultConfig();
+    if (!config) return false;
+
+    const creds = deriveDeviceCredentials(config.pairingId);
+    try {
+      await api.signIn(creds.email, creds.password);
+    } catch (e: any) {
+      throw new Error('Sign-in failed: ' + (e?.message || 'unknown'));
+    }
+
+    const localWrapKey = await deriveLocalWrapKey(password, config.localSalt);
+    
+    const cipherKey = unwrapKey(
+      parseWrapped(config.wrappedCipherKey),
+      localWrapKey.copy()
+    );
+    localWrapKey.dispose();
+
+    if (!cipherKey || cipherKey.length !== 32) {
+      if (cipherKey) cipherKey.fill(0);
+      return false;
+    }
+
+    state.cipherKey = SecureBuffer.from(cipherKey);
+    state.cipherKeyBytes = 32;
+    state.signKey = null;
+    state.signKeyBytes = 0;
+    state.lastActivity = Date.now();
+
+    state.lastSyncId = 0;
+    await setMeta('last_sync_id', '0');
+
+    resetAutoLock();
+    return true;
+  } catch (e: any) {
+    console.error(e);
+    throw new Error('Unlock error: ' + (e?.message || 'unknown'));
   }
 }
 
 async function syncVault(): Promise<void> {
-  if (state.syncing || !state.cipherKey) return;
+  if (state.syncing || !state.cipherKey || state.cipherKey.disposed) {
+    state.syncPending = true;
+    return;
+  }
   state.syncing = true;
+  state.syncPending = false;
 
+  try {
+    await doSyncVault();
+  } finally {
+    state.syncing = false;
+    if (state.syncPending) {
+      state.syncPending = false;
+      syncVault();
+    }
+  }
+}
+
+async function doSyncVault(): Promise<void> {
   try {
     const lastIdStr = await getMeta('last_sync_id');
     let sinceId = lastIdStr ? parseInt(lastIdStr, 10) : 0;
@@ -137,7 +240,7 @@ async function syncVault(): Promise<void> {
       if (!result.logs || result.logs.length === 0) break;
 
       for (const log of result.logs) {
-        if (!state.cipherKey) continue;
+        if (!state.cipherKey || state.cipherKey.disposed) continue;
 
         try {
           const raw = JSON.parse(log.payload_ciphertext);
@@ -152,15 +255,41 @@ async function syncVault(): Promise<void> {
             aad: raw.aad || '{}',
           };
 
-          const plaintext = decryptPayload(envelope, state.cipherKey);
-          if (!plaintext.id) continue;
+          const cipherKeyBuf = state.cipherKey!.copy();
+          let plaintext: any = null;
+
+          if (raw.wrappedDek) {
+            const wDekStr = typeof raw.wrappedDek === 'string' ? JSON.parse(raw.wrappedDek) : raw.wrappedDek;
+            const wrappedDek = {
+              iv: hexToBytes(wDekStr.iv),
+              ciphertext: hexToBytes(wDekStr.ciphertext),
+              tag: hexToBytes(wDekStr.tag)
+            };
+            const dek = unwrapKey(wrappedDek, cipherKeyBuf);
+            if (dek) {
+              plaintext = decryptPayload(envelope, dek);
+              dek.fill(0);
+            }
+          } else {
+            plaintext = decryptPayload(envelope, cipherKeyBuf);
+          }
+
+          if (!plaintext || !plaintext.id) {
+            cipherKeyBuf.fill(0);
+            continue;
+          }
+
+          // Re-encrypt the payload locally with the main cipherKey so it can be decrypted easily
+          const localPayload = plaintext.payload || plaintext;
+          const newEnvelope = encryptPayload(localPayload, cipherKeyBuf);
+          cipherKeyBuf.fill(0);
 
           const item: VaultItem = {
             id: plaintext.id as string,
             itemType: (plaintext.itemType as any) || 'password',
             title: (plaintext.title as string) || 'Untitled',
             folder: (plaintext.folder as string) || null,
-            payloadCiphertext: JSON.stringify(envelope),
+            payloadCiphertext: JSON.stringify(newEnvelope),
             favorite: (plaintext.favorite as boolean) || false,
             icon: (plaintext.icon as string) || null,
             urlHint: (plaintext.urlHint as string) || null,
@@ -172,7 +301,8 @@ async function syncVault(): Promise<void> {
 
           await storeVaultItems([item]);
           sinceId = log.id;
-        } catch {
+        } catch (e: any) {
+          console.error(`[Sync] Failed to process log ${log.id}: ${e instanceof Error ? e.message : String(e)}`, e);
           // Corrupted log entry — skip
         }
       }
@@ -184,37 +314,59 @@ async function syncVault(): Promise<void> {
     state.lastSyncId = sinceId;
   } catch {
     // Sync failure is non-fatal
-  } finally {
-    state.syncing = false;
   }
 }
 
 async function decryptItemsForUI(): Promise<DecryptedVaultItem[]> {
-  if (!state.cipherKey) return [];
+  if (!state.cipherKey || state.cipherKey.disposed) return [];
 
   try {
-    const { getVaultItems, decryptWithKey } = await import('../lib/storage');
     const items = await getVaultItems();
-    return decryptWithKey(items, state.cipherKey);
+    const keyBuf = state.cipherKey!.copy();
+    try {
+      return await decryptWithKey(items, keyBuf);
+    } finally {
+      keyBuf.fill(0);
+    }
   } catch {
     return [];
   }
 }
 
 async function queryAutofill(url: string): Promise<Array<{ id: string; title: string; username: string; password: string; urlHint: string }>> {
-  if (!state.cipherKey) return [];
+  if (!state.cipherKey || state.cipherKey.disposed) return [];
 
   try {
     const domain = new URL(url).hostname;
     const { getVaultItems, decryptWithKey } = await import('../lib/storage');
     const items = await getVaultItems();
-    const decrypted = await decryptWithKey(items, state.cipherKey);
+    const keyBuf = state.cipherKey!.copy();
+    let decrypted: DecryptedVaultItem[];
+    try {
+      decrypted = await decryptWithKey(items, keyBuf);
+    } finally {
+      keyBuf.fill(0);
+    }
 
     return decrypted
       .filter((item) => {
         if (item.itemType !== 'password') return false;
-        const hint = item.urlHint || '';
-        return hint.includes(domain) || domain.includes(hint.replace(/^https?:\/\//, '')) || ((item.payload as any).url || '').includes(domain);
+        
+        let match = false;
+        try {
+          const checkMatch = (targetUrl: string) => {
+            if (!targetUrl) return false;
+            let normalized = targetUrl;
+            if (!normalized.startsWith('http')) normalized = 'https://' + normalized;
+            const targetDomain = new URL(normalized).hostname;
+            return domain === targetDomain || domain.endsWith('.' + targetDomain);
+          };
+          
+          match = checkMatch(item.urlHint || '') || checkMatch((item.payload as any).url || '');
+        } catch {
+          match = false;
+        }
+        return match;
       })
       .slice(0, 8)
       .map((item) => ({
@@ -235,31 +387,39 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 });
 
 async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
-  if (state.cipherKey) {
+  if (state.cipherKey && !state.cipherKey.disposed) {
     resetAutoLock();
   }
 
   switch (msg.type) {
-    case 'GET_STATUS':
+    case 'GET_STATUS': {
+      const config = await getVaultConfig();
       return {
+        uninitialized: !config,
         authenticated: !!getToken(),
-        unlocked: state.cipherKey !== null,
+        unlocked: state.cipherKey !== null && !state.cipherKey.disposed,
         lastSyncId: state.lastSyncId,
       };
+    }
 
-    case 'ANON_SIGN_IN':
+    case 'SETUP_WITH_MNEMONIC':
       try {
-        await api.anonSignIn();
-        return { success: true };
+        const ok = await setupWithMnemonic(msg.data.mnemonic, msg.data.password);
+        if (ok) {
+          syncVault().catch(() => {});
+          connectWebSocket().catch(() => {});
+        }
+        return { success: ok };
       } catch (e: any) {
         return { success: false, error: e.message };
       }
 
-    case 'UNLOCK_WITH_MNEMONIC':
+    case 'UNLOCK_WITH_PASSWORD':
       try {
-        const ok = await unlockWithMnemonic(msg.data.mnemonic);
+        const ok = await unlockWithPassword(msg.data.password);
         if (ok) {
           syncVault().catch(() => {});
+          connectWebSocket().catch(() => {});
         }
         return { success: ok };
       } catch (e: any) {
@@ -267,7 +427,7 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
       }
 
     case 'GET_ITEMS': {
-      if (!state.cipherKey) return { items: [], locked: true };
+      if (!state.cipherKey || state.cipherKey.disposed) return { items: [], locked: true };
       const items = await decryptItemsForUI();
       return { items, locked: false };
     }
@@ -280,10 +440,15 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
       lockVault();
       await clearVault();
       chrome.alarms.clear(AUTO_LOCK_ALARM);
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      clearTimeout(wsReconnectTimer);
       return { success: true };
 
     case 'AUTOFILL_QUERY': {
-      if (!state.cipherKey) return { matches: [] };
+      if (!state.cipherKey || state.cipherKey.disposed) return { matches: [] };
       const matches = await queryAutofill(msg.data?.url || '');
       return { matches };
     }
@@ -297,19 +462,72 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === AUTO_LOCK_ALARM) {
     lockVault();
     clearVault().catch(() => {});
+  } else if (alarm.name === 'sync-poller') {
+    if (state.cipherKey && !state.cipherKey.disposed) {
+      syncVault().catch(() => {});
+    }
   }
 });
 
+let ws: WebSocket | null = null;
+let wsReconnectTimer: any = null;
+
+async function connectWebSocket() {
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
+
+  const { getApiUrl, getToken } = await import('../lib/api');
+  const token = getToken();
+  if (!token) return;
+
+  try {
+    const baseUrl = await getApiUrl();
+    const wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws?token=' + token;
+    
+    ws = new WebSocket(wsUrl);
+    
+    ws.onopen = () => {
+      console.log('[Sync] WebSocket connected for real-time push');
+      // Trigger an immediate sync when connection is established just in case
+      if (state.cipherKey && !state.cipherKey.disposed) {
+        syncVault().catch(() => {});
+      }
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === 'sync:available') {
+          console.log('[Sync] Received sync:available push event');
+          if (state.cipherKey && !state.cipherKey.disposed) {
+            syncVault().catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('[Sync] WebSocket message parsing failed', e);
+      }
+    };
+    
+    ws.onclose = () => {
+      ws = null;
+      // Reconnect with backoff
+      clearTimeout(wsReconnectTimer);
+      wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+    };
+    
+    ws.onerror = () => {
+      // ws.onclose will handle the reconnect
+    };
+  } catch (e) {
+    console.error('[Sync] WebSocket connection setup failed', e);
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
   lockVault();
+  chrome.alarms.create('sync-poller', { periodInMinutes: 1 });
 });
 
 chrome.runtime.onStartup.addListener(() => {
   lockVault();
+  chrome.alarms.create('sync-poller', { periodInMinutes: 1 });
 });
-
-setInterval(() => {
-  if (state.cipherKey) {
-    syncVault().catch(() => {});
-  }
-}, 60_000);

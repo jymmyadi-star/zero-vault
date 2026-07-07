@@ -11,7 +11,7 @@ import {
   computeSyncSignature,
   timingSafeCompare,
   randomBytes,
-  deriveWithPBKDF2,
+  deriveWithPBKDF2Async,
 } from '../crypto-utils';
 
 describe('bytesToHex / hexToBytes', () => {
@@ -187,33 +187,33 @@ describe('randomBytes', () => {
   });
 });
 
-describe('deriveWithPBKDF2', () => {
-  it('produces deterministic output for same inputs', () => {
+describe('deriveWithPBKDF2Async', () => {
+  it('produces deterministic output for same inputs', async () => {
     const password = 'test-pin-1234';
     const salt = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
-    const d1 = deriveWithPBKDF2(password, salt, 1000, 32);
-    const d2 = deriveWithPBKDF2(password, salt, 1000, 32);
+    const d1 = await deriveWithPBKDF2Async(password, salt, 1000, 32);
+    const d2 = await deriveWithPBKDF2Async(password, salt, 1000, 32);
     expect(bytesToHex(d1)).toBe(bytesToHex(d2));
   });
 
-  it('produces different output for different passwords', () => {
+  it('produces different output for different passwords', async () => {
     const salt = new Uint8Array([1, 2, 3, 4]);
-    const d1 = deriveWithPBKDF2('pin-1', salt, 100, 32);
-    const d2 = deriveWithPBKDF2('pin-2', salt, 100, 32);
+    const d1 = await deriveWithPBKDF2Async('pin-1', salt, 100, 32);
+    const d2 = await deriveWithPBKDF2Async('pin-2', salt, 100, 32);
     expect(bytesToHex(d1)).not.toBe(bytesToHex(d2));
   });
 
-  it('produces correct output length', () => {
+  it('produces correct output length', async () => {
     const salt = new Uint8Array([1]);
-    expect(deriveWithPBKDF2('pw', salt, 10, 16).length).toBe(16);
-    expect(deriveWithPBKDF2('pw', salt, 10, 32).length).toBe(32);
-    expect(deriveWithPBKDF2('pw', salt, 10, 64).length).toBe(64);
+    expect((await deriveWithPBKDF2Async('pw', salt, 10, 16)).length).toBe(16);
+    expect((await deriveWithPBKDF2Async('pw', salt, 10, 32)).length).toBe(32);
+    expect((await deriveWithPBKDF2Async('pw', salt, 10, 64)).length).toBe(64);
   });
 
-  it('matches known PBKDF2-SHA512 vector', () => {
+  it('matches known PBKDF2-SHA512 vector', async () => {
     const password = 'password';
     const salt = new TextEncoder().encode('salt');
-    const derived = deriveWithPBKDF2(password, salt, 1, 64);
+    const derived = await deriveWithPBKDF2Async(password, salt, 1, 64);
     expect(derived.length).toBe(64);
   });
 });

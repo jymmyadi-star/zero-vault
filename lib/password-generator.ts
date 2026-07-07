@@ -73,24 +73,40 @@ export function generatePassword(options: GeneratorOptions): string {
   return result;
 }
 
-/** Generate a memorable passphrase using diceware-style word list */
-const WORDLIST = [
-  'alpha', 'bravo', 'charlie', 'delta', 'echo', 'foxtrot', 'golf', 'hotel',
-  'india', 'juliet', 'kilo', 'lima', 'mike', 'november', 'oscar', 'papa',
-  'quebec', 'romeo', 'sierra', 'tango', 'uniform', 'victor', 'whiskey', 'xray',
-  'yankee', 'zulu', 'apple', 'stone', 'cloud', 'river', 'storm', 'flame',
-  'ocean', 'tiger', 'eagle', 'frost', 'coral', 'amber', 'raven', 'blaze',
-  'cedar', 'dune', 'ember', 'forge', 'glade', 'haven', 'ivory', 'jade',
-  'koi', 'lotus', 'maple', 'nova', 'onyx', 'pearl', 'quartz', 'ridge',
-  'sage', 'thorn', 'umber', 'vale', 'willow', 'zenith', 'aster', 'birch',
-];
+/** Generate a memorable passphrase using the EFF Diceware Large wordlist (7776 words, ~12.92 bits/word).
+ *  6 words = ~77.5 bits of entropy. Industry standard for secure memorable passphrases. */
+import { EFF_WORDLIST } from './eff-wordlist';
 
-export function generatePassphrase(wordCount: number = 4, separator: string = '-'): string {
-  const words: string[] = [];
-  const array = new Uint32Array(wordCount);
-  crypto.getRandomValues(array);
-  for (let i = 0; i < wordCount; i++) {
-    words.push(WORDLIST[array[i]! % WORDLIST.length]!);
-  }
-  return words.join(separator);
+const WORD_COUNT = EFF_WORDLIST.length;
+const REJECTION_THRESHOLD = Math.floor(Math.pow(2, 16) / WORD_COUNT) * WORD_COUNT;
+
+export interface PassphraseOptions {
+  wordCount?: number;
+  separator?: string;
+  capitalize?: boolean;
+  includeNumber?: boolean;
+}
+
+export function generatePassphrase(options: PassphraseOptions | number = {}): string {
+  const opts: PassphraseOptions = typeof options === 'number' ? { wordCount: options } : options;
+  const wordCount = Math.max(4, Math.min(opts.wordCount || 6, 20));
+  const separator = opts.separator || '-';
+  const capitalize = opts.capitalize ?? true;
+  const includeNumber = opts.includeNumber ?? true;
+
+  const words = Array.from({ length: wordCount }, () => {
+    const single = new Uint16Array(1);
+    let val: number;
+    do {
+      crypto.getRandomValues(single);
+      val = single[0]!;
+    } while (val >= REJECTION_THRESHOLD);
+    const idx = val % WORD_COUNT;
+    const word = EFF_WORDLIST[idx]!;
+    return capitalize ? word.charAt(0).toUpperCase() + word.slice(1) : word;
+  });
+
+  let passphrase = words.join(separator);
+  if (includeNumber) passphrase += separator + Math.floor(Math.random() * 100).toString().padStart(2, '0');
+  return passphrase;
 }

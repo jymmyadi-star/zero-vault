@@ -105,3 +105,31 @@ export async function clearVault(): Promise<void> {
     tx.onerror = () => reject(tx.error);
   });
 }
+
+// --- Configuration Storage (chrome.storage.local) ---
+
+export interface VaultConfig {
+  pairingId: string;
+  wrappedCipherKey: { iv: string; ciphertext: string; tag: string };
+  localSalt: string;
+}
+
+export async function setVaultConfig(config: VaultConfig): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.set({ zerovault_config: config }, () => resolve());
+  });
+}
+
+export async function getVaultConfig(): Promise<VaultConfig | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['zerovault_config'], (result) => {
+      resolve(result.zerovault_config || null);
+    });
+  });
+}
+
+export async function clearVaultConfig(): Promise<void> {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(['zerovault_config'], () => resolve());
+  });
+}

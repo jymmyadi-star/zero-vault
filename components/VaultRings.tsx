@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
-import Svg, { Path, G, Defs, LinearGradient, Stop, Circle, ClipPath } from 'react-native-svg';
-import Animated, { useAnimatedProps, useSharedValue, withTiming, withDelay } from 'react-native-reanimated';
+import Svg, { Path, G, Defs, LinearGradient, Stop, Circle, ClipPath, RadialGradient } from 'react-native-svg';
+import Animated, { useAnimatedProps, useSharedValue, withTiming, withDelay, Easing, withRepeat, useAnimatedStyle } from 'react-native-reanimated';
+import { BlurView } from 'expo-blur';
+import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedG = Animated.createAnimatedComponent(G);
 
 const polar = (cx: number, cy: number, r: number, deg: number) => {
   'worklet';
@@ -28,7 +31,7 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
 }) {
   const anim = useSharedValue(0);
   React.useEffect(() => {
-    anim.value = withDelay(delay, withTiming(progress, { duration: 1000 }));
+    anim.value = withDelay(delay, withTiming(progress, { duration: 1500, easing: Easing.bezier(0.25, 0.1, 0.25, 1) }));
   }, [progress, delay]);
 
   const trackArc = arcPath(cx, cy, r, START_DEG, SWEEP_DEG);
@@ -42,7 +45,7 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
   const capProps = useAnimatedProps(() => {
     const endDeg = START_DEG + anim.value * SWEEP_DEG;
     const p = polar(cx, cy, r, endDeg);
-    return { cx: p.x, cy: p.y, opacity: anim.value > 0.05 ? 1 : 0 };
+    return { cx: p.x, cy: p.y, opacity: anim.value > 0.02 ? 1 : 0 };
   });
   const clipAnimProps = useAnimatedProps(() => ({
     strokeDashoffset: arcLen * (1 - anim.value),
@@ -52,10 +55,10 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
     let f = "";
     const unitPx = 8;
     const stepDeg = (unitPx / (2 * Math.PI * r)) * 360;
-    const count = Math.floor(SWEEP_DEG / stepDeg);
+    const count = Math.ceil(360 / stepDeg);
 
-    for (let i = 0; i <= count; i++) {
-      const angleDeg = START_DEG + i * stepDeg;
+    for (let i = 0; i < count; i++) {
+      const angleDeg = i * stepDeg;
       const rad = ((angleDeg - 90) * Math.PI) / 180;
       const tangRad = rad + Math.PI / 2;
       const x = cx + r * Math.cos(rad);
@@ -89,6 +92,22 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
     return { folkPath: f };
   }, [cx, cy, r, sw]);
 
+  const folkRot = useSharedValue(0);
+  React.useEffect(() => {
+    const dir = delay === 150 ? -1 : 1; // Middle ring goes reverse
+    folkRot.value = withRepeat(withTiming(dir * 360, { duration: 90000, easing: Easing.linear }), -1, false);
+  }, []);
+
+  const folkRotProps = useAnimatedProps(() => ({
+    transform: [
+      { translateX: cx },
+      { translateY: cy },
+      { rotate: `${folkRot.value}deg` },
+      { translateX: -cx },
+      { translateY: -cy },
+    ] as any
+  }));
+
   return (
     <G>
       <Path d={trackArc} stroke={trackColor} strokeWidth={sw} fill="none" strokeLinecap="round" />
@@ -106,7 +125,15 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
           />
         </ClipPath>
       </Defs>
-      <Path d={folkPath} fill="rgba(255,255,255,0.18)" stroke="rgba(255,255,255,0.22)" strokeWidth={0.3} clipPath={`url(#${clipId})`} />
+      
+      <G clipPath={`url(#${clipId})`}>
+        <AnimatedG animatedProps={folkRotProps}>
+          <Path d={folkPath} fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.08)" strokeWidth={0.3} />
+        </AnimatedG>
+      </G>
+      
+      {/* Restored small head caps */}
+      <AnimatedCircle r={sw / 2 + 1} fill={color} opacity={0.3} animatedProps={capProps} />
       <AnimatedCircle r={sw / 2 - 1.5} fill="#FFFFFF" animatedProps={capProps} />
     </G>
   );
@@ -115,6 +142,7 @@ const Ring = React.memo(function Ring({ cx, cy, r, sw, progress, trackColor, gra
 const CenterMedallion = React.memo(function CenterMedallion({ cx, cy }: { cx: number; cy: number }) {
   const d = useMemo(() => {
     let path = "";
+
     const s = (x: number, y: number, sz: number) =>
       `M${x},${y} l${sz},${sz} M${x+sz},${y} l-${sz},${sz} `;
 
@@ -218,95 +246,186 @@ export const VaultRings = React.memo<{
   const seedsProgress = seedsCount > 0 ? Math.min(seedsCount / 5, 1) : 0.05;
   const notesProgress = notesCount > 0 ? Math.min(notesCount / 10, 1) : 0.05;
 
-  return (
-    <View style={styles.card}>
-      <View style={styles.ringsContainer}>
-        <Svg width={SIZE} height={vbH} viewBox={`0 0 ${SIZE} ${vbH}`} style={{ overflow: 'hidden' }}>
-          <Defs>
-            <LinearGradient id="gOuter" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0%" stopColor="#FFFFFF" /><Stop offset="100%" stopColor="#A1A1AA" />
-            </LinearGradient>
-            <LinearGradient id="gMiddle" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0%" stopColor="#A1A1AA" /><Stop offset="100%" stopColor="#52525B" />
-            </LinearGradient>
-            <LinearGradient id="gInner" x1="0" y1="0" x2="1" y2="0">
-              <Stop offset="0%" stopColor="#52525B" /><Stop offset="100%" stopColor="#27272A" />
-            </LinearGradient>
-          </Defs>
-          <CenterMedallion cx={CX} cy={CY} />
-          <Ring cx={CX} cy={CY} r={R1} sw={SW} progress={passwordsProgress} trackColor="rgba(255,255,255,0.02)" gradId="gOuter" color="#FFFFFF" clipId="vc1" delay={0} />
-          <Ring cx={CX} cy={CY} r={R2} sw={SW} progress={seedsProgress} trackColor="rgba(255,255,255,0.02)" gradId="gMiddle" color="#A1A1AA" clipId="vc2" delay={200} />
-          <Ring cx={CX} cy={CY} r={R3} sw={SW} progress={notesProgress} trackColor="rgba(255,255,255,0.02)" gradId="gInner" color="#52525B" clipId="vc3" delay={400} />
-        </Svg>
-      </View>
+  const rot = useSharedValue(0);
+  React.useEffect(() => {
+    rot.value = withRepeat(withTiming(360, { duration: 40000, easing: Easing.linear }), -1, false);
+  }, []);
 
-      <View style={styles.legend}>
-        <View style={styles.item}>
-          <Text style={[styles.label, { color: '#8E8E93' }]}>Passwords</Text>
-          <Text style={[styles.big, { color: '#FFFFFF' }]}>{passwordsCount}</Text>
+  const medallionStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rot.value}deg` }]
+  }));
+
+  return (
+    <View style={styles.cardOuter}>
+      {/* Volumetric bottom edge glow */}
+      <ExpoLinearGradient
+        colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={styles.bottomEdgeGlow}
+      />
+      <BlurView intensity={30} tint="dark" style={styles.card}>
+        <ExpoLinearGradient colors={['rgba(3, 0, 2, 0.1)', 'rgba(3, 0, 2, 0.98)']} style={StyleSheet.absoluteFill} />
+        
+        {/* Top highlight shimmer line */}
+        <ExpoLinearGradient
+          colors={['transparent', 'rgba(255,255,255,0.08)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.topShimmer}
+        />
+
+        <View style={styles.ringsContainer}>
+          <View style={{ width: SIZE, height: vbH, overflow: 'hidden' }}>
+            <Svg width={SIZE} height={vbH} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <RadialGradient id="ambientGlow" cx="50%" cy="50%" rx="50%" ry="50%">
+                  <Stop offset="0%" stopColor="#FF0033" stopOpacity="0.25" />
+                  <Stop offset="100%" stopColor="#FF0033" stopOpacity="0" />
+                </RadialGradient>
+              </Defs>
+              <Circle cx={CX} cy={CY} r={R1} fill="url(#ambientGlow)" />
+            </Svg>
+
+            <Animated.View style={[{ width: SIZE, height: SIZE, position: 'absolute', top: 0, left: 0 }, medallionStyle]}>
+              <Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}>
+                <CenterMedallion cx={CX} cy={CY} />
+              </Svg>
+            </Animated.View>
+
+            <Svg width={SIZE} height={vbH} style={StyleSheet.absoluteFill}>
+              <Defs>
+                <LinearGradient id="gOuter" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="#8C1212" /><Stop offset="100%" stopColor="#FF0033" />
+                </LinearGradient>
+                <LinearGradient id="gMiddle" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="#A1A1AA" /><Stop offset="100%" stopColor="#FFFFFF" />
+                </LinearGradient>
+                <LinearGradient id="gInner" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0%" stopColor="#27272A" /><Stop offset="100%" stopColor="#71717A" />
+                </LinearGradient>
+              </Defs>
+              <Ring cx={CX} cy={CY} r={R1} sw={SW} progress={passwordsProgress} trackColor="rgba(255,0,51,0.15)" gradId="gOuter" color="#FF0033" clipId="vc1" delay={0} />
+              <Ring cx={CX} cy={CY} r={R2} sw={SW} progress={seedsProgress} trackColor="rgba(255,255,255,0.12)" gradId="gMiddle" color="#FFFFFF" clipId="vc2" delay={150} />
+              <Ring cx={CX} cy={CY} r={R3} sw={SW} progress={notesProgress} trackColor="rgba(255,255,255,0.10)" gradId="gInner" color="#A1A1AA" clipId="vc3" delay={300} />
+            </Svg>
+          </View>
         </View>
-        <View style={styles.sep} />
-        <View style={styles.item}>
-          <Text style={[styles.label, { color: '#8E8E93' }]}>Seeds</Text>
-          <Text style={[styles.big, { color: '#FFFFFF' }]}>{seedsCount}</Text>
+
+        {/* Premium legend */}
+        <View style={styles.legendContainer}>
+          <ExpoLinearGradient
+            colors={['transparent', 'rgba(255,255,255,0.04)', 'transparent']}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.legendDivider}
+          />
+          <View style={styles.legend}>
+            <View style={styles.item}>
+              <View style={[styles.dot, { backgroundColor: '#FF0033', shadowColor: '#FF0033' }]} />
+              <Text style={styles.label}>PASSWORDS</Text>
+              <Text style={[styles.big, { color: '#FFFFFF' }]}>{passwordsCount}</Text>
+            </View>
+            <View style={styles.sep} />
+            <View style={styles.item}>
+              <View style={[styles.dot, { backgroundColor: '#FFFFFF', shadowColor: '#FFFFFF' }]} />
+              <Text style={styles.label}>SEEDS</Text>
+              <Text style={[styles.big, { color: '#FFFFFF' }]}>{seedsCount}</Text>
+            </View>
+            <View style={styles.sep} />
+            <View style={styles.item}>
+              <View style={[styles.dot, { backgroundColor: '#71717A', shadowColor: '#71717A' }]} />
+              <Text style={styles.label}>NOTES</Text>
+              <Text style={[styles.big, { color: '#FFFFFF' }]}>{notesCount}</Text>
+            </View>
+          </View>
         </View>
-        <View style={styles.sep} />
-        <View style={styles.item}>
-          <Text style={[styles.label, { color: '#8E8E93' }]}>Notes</Text>
-          <Text style={[styles.big, { color: '#FFFFFF' }]}>{notesCount}</Text>
-        </View>
-      </View>
+      </BlurView>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
+  cardOuter: {
+    marginBottom: 24,
+    position: 'relative',
+  },
+  bottomEdgeGlow: {
+    position: 'absolute',
+    bottom: -1,
+    left: 20,
+    right: 20,
+    height: 1.5,
+    borderRadius: 1,
+  },
   card: {
-    backgroundColor: '#0D0D12',
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 28,
+    paddingTop: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
     alignItems: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.03)',
-    marginBottom: 24,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  topShimmer: {
+    position: 'absolute',
+    top: 0,
+    left: 24,
+    right: 24,
+    height: 1,
   },
   ringsContainer: {
     width: 200,
     height: 160,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  legendContainer: {
+    width: '100%',
+  },
+  legendDivider: {
+    height: 0.5,
+    width: '100%',
+    marginBottom: 20,
   },
   legend: {
     flexDirection: 'row',
     width: '100%',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.02)',
+    paddingHorizontal: 10,
   },
   sep: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    marginVertical: 4
+    width: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginVertical: 4,
   },
   item: {
     flex: 1,
     alignItems: 'center',
+    gap: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginBottom: 4,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   label: {
-    fontSize: 9,
+    fontSize: 8,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.5)',
     letterSpacing: 1,
-    marginBottom: 4
   },
   big: {
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: '800',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    letterSpacing: -0.5,
   },
 });

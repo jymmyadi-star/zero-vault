@@ -15,7 +15,25 @@ import type { SyncOperation } from './types';
 import { getIsOnline } from '../network-status';
 import { apiClient } from './api-client';
 
+let isPulling = false;
+let isPullPending = false;
+
 export async function pullChanges(): Promise<void> {
+  if (isPulling) { isPullPending = true; return; }
+  isPulling = true;
+
+  try {
+    await doPullChanges();
+  } finally {
+    isPulling = false;
+    if (isPullPending) {
+      isPullPending = false;
+      pullChanges();
+    }
+  }
+}
+
+async function doPullChanges(): Promise<void> {
   const storeState = useVaultStore.getState();
   if (!storeState.syncEnabled || !storeState.signKey) {
     Logger.debug('[Sync] Pull skipped — sync not enabled', { module: 'SyncEngine' });
@@ -100,8 +118,8 @@ export async function pullChanges(): Promise<void> {
               currentSinceId = log.id;
               success = true;
             } else if (retryCount >= 3) {
-              Logger.error('Failed to merge remote change after 3 retries, advancing cursor to prevent infinite block', {
-                module: 'SyncEngine', logId: log.id, error: errorMessage,
+              Logger.error('Failed to merge remote change after 3 retries', e, {
+                module: 'SyncEngine', logId: log.id,
               });
               currentSinceId = log.id;
               success = true;
@@ -149,7 +167,7 @@ export async function pullChanges(): Promise<void> {
 async function mergeRemoteChange(
   log: any,
   payloadData: Record<string, unknown>,
-  signKey: Uint8Array,
+  _signKey: Uint8Array,
 ): Promise<boolean> {
   if (!log.entity_type || log.entity_type !== 'vaultItem') return false;
 
@@ -164,19 +182,24 @@ async function mergeRemoteChange(
 
     if (payloadData.envelope && payloadData.wrappedDek) {
       try {
-        const wrappedDekData = payloadData.wrappedDek as Record<string, unknown>;
+        const wrappedDekData = typeof payloadData.wrappedDek === 'string' 
+          ? JSON.parse(payloadData.wrappedDek) 
+          : payloadData.wrappedDek;
+          
         const wrapped: WrappedKey = {
           iv: hexToBytes(wrappedDekData.iv as string),
           ciphertext: hexToBytes(wrappedDekData.ciphertext as string),
           tag: hexToBytes(wrappedDekData.tag as string),
         };
-        const dek = unwrapKey(wrapped, signKey);
+        const dek = unwrapKey(wrapped, cipherKey);
         plaintext = decryptPayload(payloadData.envelope as any, dek);
         dek.fill(0);
-        signKey.fill(0);
-      } catch {
+      } catch (err: any) {
+        Logger.error('Failed to decrypt remote payload', err, { module: 'SyncEngine', logId: log.id });
         return false;
       }
+    } else {
+      return false;
     }
 
     if (!plaintext || !plaintext.id) return false;
@@ -264,7 +287,8 @@ async function mergeRemoteChange(
     });
 
     return true;
-  } catch {
+  } catch (err: any) {
+    Logger.error('[Sync] mergeRemoteChange failed', err, { module: 'SyncEngine' });
     return false;
   }
 }

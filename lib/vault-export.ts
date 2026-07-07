@@ -147,8 +147,8 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
     if (options.password) {
       const pwBytes = new TextEncoder().encode(options.password);
       const salt = randomBytes(32);
-      const { deriveWithPBKDF2 } = await import('./crypto/crypto-utils');
-      const key = deriveWithPBKDF2(options.password, salt, 600000, 32);
+      const { deriveWithPBKDF2Async } = await import('./crypto/crypto-utils');
+      const key = await deriveWithPBKDF2Async(options.password, salt, 600000, 32);
       const envelope = encryptPayload(exportData as unknown as Record<string, unknown>, key, { export_password_protected: true });
       data = JSON.stringify({ salt: Buffer.from(salt).toString('hex'), envelope });
       key.fill(0);

@@ -8,6 +8,7 @@ import android.service.autofill.*
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillValue
 import androidx.annotation.RequiresApi
+import android.widget.RemoteViews
 import com.facebook.react.bridge.*
 
 @RequiresApi(Build.VERSION_CODES.O)

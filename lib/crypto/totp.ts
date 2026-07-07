@@ -98,9 +98,11 @@ export function generateRandomTOTPSecret(): string {
     result += alphabet[val % alphabet.length]!;
   }
   if (result.length < 32) {
-    // fallback: fill remaining with crypto-safe selection
-    while (result.length < 32) {
-      result += alphabet[Math.floor(Math.random() * alphabet.length)]!;
+    const extra = new Uint8Array(32 - result.length);
+    crypto.getRandomValues(extra);
+    for (const byte of extra) {
+      if (byte >= 256 - (256 % alphabet.length)) continue;
+      result += alphabet[byte % alphabet.length]!;
     }
   }
   return result;

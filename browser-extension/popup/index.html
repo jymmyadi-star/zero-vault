@@ -5,68 +5,408 @@
   <title>Zero Vault</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    :root {
+      --bg-dark: #050505;
+      --glass-bg: rgba(255, 255, 255, 0.02);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --glass-highlight: rgba(255, 255, 255, 0.1);
+      --text-main: #FFFFFF;
+      --text-muted: #8E8E93;
+      --accent: #FFFFFF;
+      --danger: #FF3B30;
+      --success: #34C759;
+      --glow-color: rgba(255, 255, 255, 0.4);
+    }
+
     body {
-      width: 360px;
-      min-height: 300px;
-      max-height: 500px;
-      font-family: 'Courier New', Courier, monospace;
-      background: #0a0a0f;
-      color: #e0e0e0;
+      width: 380px;
+      min-height: 480px;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: radial-gradient(circle at 50% -20%, rgba(60, 40, 100, 0.2), transparent 60%),
+                        radial-gradient(circle at 0% 100%, rgba(20, 20, 30, 0.8), transparent 50%);
+      color: var(--text-main);
       overflow-x: hidden;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
     }
-    .container { padding: 16px; }
-    .header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
-    .logo { font-size: 16px; font-weight: 900; color: #00F0FF; letter-spacing: 4px; }
-    .status { font-size: 10px; color: #666; margin-left: auto; }
-    .status.locked { color: #FF3B30; }
-    .status.unlocked { color: #34C759; }
-    .btn {
+
+    .container { 
+      padding: 24px; 
+      display: flex; 
+      flex-direction: column; 
+      height: 100vh; 
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Ambient animated dust/glow behind */
+    .ambient-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 200px;
+      height: 200px;
+      background: var(--glow-color);
+      border-radius: 50%;
+      filter: blur(80px);
+      transform: translate(-50%, -50%);
+      opacity: 0.1;
+      animation: pulseGlow 4s infinite alternate ease-in-out;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    @keyframes pulseGlow {
+      0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.05; }
+      100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.15; }
+    }
+    
+    /* Header */
+    .header { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      margin-bottom: 32px; 
+      position: relative;
+      z-index: 2;
+    }
+    .logo { 
+      font-size: 15px; 
+      font-weight: 900; 
+      letter-spacing: 3px; 
+      color: var(--text-main); 
+      text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+    
+    .status-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--glass-bg);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 0.5px solid var(--glass-border);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      transition: all 0.5s ease;
+    }
+    .status-dot.secured { 
+      background: var(--text-main); 
+      box-shadow: 0 0 10px rgba(255,255,255,0.8); 
+    }
+    .status-dot.locked { 
+      background: var(--danger); 
+      box-shadow: 0 0 10px rgba(255,59,48,0.8); 
+      animation: breatheLocked 2s infinite;
+    }
+    @keyframes breatheLocked {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .status-text { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-muted); }
+
+    /* Glass Panels */
+    .glass-panel {
+      position: relative;
+      background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(40px);
+      -webkit-backdrop-filter: blur(40px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+      z-index: 2;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+    }
+
+    /* Inputs */
+    .input-field {
       width: 100%;
-      padding: 12px;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      color: #fff;
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 13px;
-      font-weight: 700;
-      cursor: pointer;
-      letter-spacing: 1px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 16px;
+      border-radius: 14px;
+      outline: none;
+      transition: all 0.3s ease;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
     }
-    .btn-primary { background: #00F0FF; color: #000; font-weight: 900; border: none; }
-    .btn:hover { opacity: 0.85; }
-    .search { width: 100%; padding: 10px 14px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; background: rgba(255,255,255,0.03); color: #fff; font-family: inherit; font-size: 13px; outline: none; }
-    .search:focus { border-color: #00F0FF; }
-    .item-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
-    .item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 12px; border-radius: 10px;
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.04);
-      cursor: pointer;
+    .input-field::placeholder { color: rgba(255,255,255,0.2); }
+    .input-field:focus {
+      border-color: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.05);
+      box-shadow: 0 0 15px rgba(255,255,255,0.1), inset 0 2px 4px rgba(0,0,0,0.2);
     }
-    .item:hover { background: rgba(255,255,255,0.06); }
-    .item-title { font-size: 13px; font-weight: 600; }
-    .item-sub { font-size: 10px; color: #888; margin-top: 2px; }
-    .item-actions { display: flex; gap: 6px; }
-    .icon-btn { background: none; border: none; color: #888; cursor: pointer; font-size: 16px; padding: 4px; }
-    .icon-btn:hover { color: #fff; }
-    .empty { text-align: center; padding: 30px 0; color: #666; font-size: 12px; }
-    .error { text-align: center; padding: 30px 0; color: #FF3B30; font-size: 12px; }
-    .mnemonic-input { width: 100%; min-height: 60px; padding: 10px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); color: #fff; font-family: inherit; font-size: 12px; resize: vertical; margin-bottom: 12px; }
-    .hint { font-size: 10px; color: #666; margin-bottom: 12px; text-align: center; }
-    .copied { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); background: #34C759; color: #000; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 700; opacity: 0; transition: opacity 0.2s; }
-    .copied.show { opacity: 1; }
+    .input-mono {
+      font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+      letter-spacing: 2px;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      position: relative;
+      width: 100%;
+      padding: 16px;
+      border: 1px solid var(--glass-highlight);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      overflow: hidden;
+      backdrop-filter: blur(10px);
+    }
+    .btn::before {
+      content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transform: skewX(-20deg); transition: 0.5s;
+    }
+    .btn:hover { 
+      background: linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%); 
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    }
+    .btn:hover::before { left: 150%; }
+    .btn:active { transform: translateY(1px); }
+    
+    .btn-primary {
+      background: var(--text-main);
+      color: var(--bg-dark);
+      border: none;
+      box-shadow: 0 0 15px rgba(255,255,255,0.2);
+    }
+    .btn-primary:hover { 
+      background: #EAEAEA; 
+      box-shadow: 0 0 25px rgba(255,255,255,0.4);
+    }
+    .btn-primary::before { background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent); }
+
+    /* Layout Spacing */
+    .space-y-6 > * + * { margin-top: 24px; }
+    .space-y-4 > * + * { margin-top: 16px; }
+    .space-y-2 > * + * { margin-top: 8px; }
+    .row { display: flex; gap: 12px; }
+    .flex-1 { flex: 1; }
+
+    /* Typography */
+    .label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; display: block; }
+    .title { font-size: 22px; font-weight: 300; letter-spacing: -0.5px; margin-bottom: 8px; text-align: center; }
+    .desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; text-align: center; }
+
+    /* Screens */
+    .screen {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      animation: fadeIn 0.4s ease forwards;
+    }
+    .screen.active { display: flex; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Items List */
+    .item-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 12px; 
+      flex: 1;
+      overflow-y: auto; 
+      margin-bottom: 16px;
+      padding-right: 6px;
+      z-index: 2;
+    }
+    .item-list::-webkit-scrollbar { width: 4px; }
+    .item-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }
+
+    .item-card {
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      padding: 16px; 
+      border-radius: 16px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+      border: 1px solid var(--glass-border);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .item-card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+      background: var(--text-main); opacity: 0; transition: opacity 0.2s ease;
+    }
+    .item-card:hover { 
+      background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); 
+      border-color: var(--glass-highlight);
+      transform: translateX(4px);
+    }
+    .item-card:hover::before { opacity: 1; }
+    
+    .item-icon-wrapper {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      display: flex; align-items: center; justify-content: center;
+      margin-right: 12px;
+      font-size: 16px;
+    }
+    .item-content { flex: 1; overflow: hidden; }
+    .item-title { font-size: 15px; font-weight: 600; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .item-sub { font-size: 12px; color: var(--text-muted); }
+    
+    .item-actions { display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s ease; }
+    .item-card:hover .item-actions { opacity: 1; }
+    
+    .icon-btn { 
+      background: rgba(255,255,255,0.05); 
+      border: 1px solid var(--glass-border); 
+      color: var(--text-main); 
+      cursor: pointer; 
+      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .icon-btn svg { width: 16px; height: 16px; fill: currentColor; }
+    .icon-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.05); }
+    .icon-btn:active { transform: scale(0.95); }
+
+    .empty { 
+      text-align: center; 
+      padding: 60px 0; 
+      color: var(--text-muted); 
+      font-size: 14px; 
+      display: flex; flex-direction: column; align-items: center; gap: 16px;
+    }
+    .empty svg { width: 48px; height: 48px; opacity: 0.3; }
+    .error-msg { color: var(--danger); font-size: 12px; text-align: center; margin-top: 12px; display: none; font-weight: 600; }
+
+    /* Toast */
+    .toast { 
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(30px) scale(0.9); 
+      background: rgba(255,255,255,0.9); color: var(--bg-dark); 
+      padding: 12px 24px; border-radius: 30px; 
+      font-size: 12px; font-weight: 800; letter-spacing: 1px;
+      opacity: 0; pointer-events: none; 
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+      box-shadow: 0 10px 30px rgba(255,255,255,0.2);
+      z-index: 100;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+
+    /* Cinematic Decryption Overlay */
+    .decryption-overlay {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(10px);
+      z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .decryption-overlay.active { display: flex; animation: fadeInOverlay 0.2s ease forwards; }
+    @keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+    
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(255,255,255,0.1);
+      border-top-color: var(--text-main);
+      border-radius: 50%;
+      animation: spin 1s cubic-bezier(0.5, 0.1, 0.4, 0.9) infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .decrypt-text { margin-top: 16px; font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: 2px; color: var(--text-main); }
   </style>
 </head>
 <body>
+  <div class="ambient-glow"></div>
   <div class="container">
     <div class="header">
-      <div class="logo">Z//VAULT</div>
-      <div id="status" class="status locked">LOCKED</div>
+      <div class="logo">ZERO VAULT</div>
+      <div class="status-container" id="status-container">
+        <div class="status-dot locked" id="status-dot"></div>
+        <div class="status-text" id="status-text">LOCKED</div>
+      </div>
     </div>
-    <div id="content"></div>
-    <div id="copied" class="copied">COPIED</div>
+    
+    <!-- Pairing Screen -->
+    <div id="screen-pairing" class="screen">
+      <div class="glass-panel space-y-6">
+        <div>
+          <h1 class="title">Secure Link</h1>
+          <p class="desc">Connect extension to your mobile vault.</p>
+        </div>
+        
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <label class="label">Vault Seed (24 Words)</label>
+            <textarea id="pairing-id-input" class="input-field input-mono" placeholder="Enter your 24-word master seed..." autocomplete="off" spellcheck="false" style="height: 80px; resize: none;"></textarea>
+          </div>
+          <div class="space-y-2">
+            <label class="label">Create Local PIN</label>
+            <input type="password" id="pairing-pin-input" class="input-field input-mono" placeholder="••••••" maxlength="12" style="text-align: center; letter-spacing: 8px; font-size: 20px;" autocomplete="off" />
+          </div>
+        </div>
+        
+        <button id="btn-pair" class="btn btn-primary">Establish Link</button>
+        <div id="pair-error" class="error-msg">Invalid pairing ID.</div>
+      </div>
+    </div>
+
+    <!-- Unlock Screen -->
+    <div id="screen-unlock" class="screen">
+      <div class="glass-panel space-y-6" style="margin-top: 20px;">
+        <div>
+          <h1 class="title">Vault Locked</h1>
+          <p class="desc">Enter your master PIN to decrypt memory.</p>
+        </div>
+        
+        <div class="space-y-2">
+          <input type="password" id="pin-input" class="input-field input-mono" placeholder="••••••" maxlength="12" style="text-align: center; letter-spacing: 8px; font-size: 24px;" autocomplete="off" />
+        </div>
+        
+        <button id="btn-unlock" class="btn btn-primary">Decrypt</button>
+        <div id="unlock-error" class="error-msg">Cryptographic verification failed.</div>
+      </div>
+    </div>
+
+    <!-- Vault Screen -->
+    <div id="screen-vault" class="screen">
+      <div class="space-y-4" style="margin-bottom: 16px;">
+        <input type="text" id="search-input" class="input-field" placeholder="Search entries..." autocomplete="off" />
+      </div>
+      <div id="item-list" class="item-list">
+        <!-- Rendered by popup.ts -->
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">COPIED</div>
+    
+    <!-- Decryption Cinematic -->
+    <div id="decryption-overlay" class="decryption-overlay">
+      <div class="spinner"></div>
+      <div class="decrypt-text">DECRYPTING MEMORY...</div>
+    </div>
   </div>
   <script src="popup.js"></script>
 </body>

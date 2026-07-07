@@ -1,32 +1,33 @@
 import type { SyncLogEntry, PushChange, VaultSeedData } from './types';
 
-let API_URL = 'http://localhost:4000';
+let API_URL = 'https://13-61-144-124.nip.io';
 let isApiUrlLoaded = false;
 
+// Ambient declaration for build-time `process.env` injection (esbuild `define`)
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
 // Async initialize API_URL for production (from build var or chrome storage)
-async function getApiUrl(): Promise<string> {
+export async function getApiUrl(): Promise<string> {
   // 1. Build-time injection (highest priority)
-  if (typeof process !== 'undefined' && process.env) {
-    // @ts-ignore
+  if (typeof process !== 'undefined' && process?.env) {
     if (process.env.EXPO_PUBLIC_ZEROVAULT_API_URL) return process.env.EXPO_PUBLIC_ZEROVAULT_API_URL;
-    // @ts-ignore
     if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
   }
   
   if (isApiUrlLoaded) return API_URL;
 
   // 2. Runtime override via extension storage (for self-hosters)
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['ZEROVAULT_API_URL'], (result: Record<string, any>) => {
-        if (typeof result.ZEROVAULT_API_URL === 'string') {
-          API_URL = result.ZEROVAULT_API_URL;
-        }
-        isApiUrlLoaded = true;
-        resolve(API_URL);
-      });
-    });
-  }
+  // if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+  //   return new Promise((resolve) => {
+  //     chrome.storage.local.get(['ZEROVAULT_API_URL'], (result: Record<string, any>) => {
+  //       if (typeof result.ZEROVAULT_API_URL === 'string') {
+  //         API_URL = result.ZEROVAULT_API_URL;
+  //       }
+  //       isApiUrlLoaded = true;
+  //       resolve(API_URL);
+  //     });
+  //   });
+  // }
 
   isApiUrlLoaded = true;
   return API_URL; // Fallback to dev localhost
@@ -47,7 +48,7 @@ async function apiFetch<T>(
   options: { method?: string; body?: unknown; query?: Record<string, string> } = {},
 ): Promise<T> {
   const token = getToken();
-  if (!token && !path.includes('/auth/anonymous')) {
+  if (!token && !path.includes('/auth/signin') && !path.includes('/auth/anonymous')) {
     throw new Error('NOT_AUTHENTICATED');
   }
 
@@ -82,28 +83,18 @@ export const api = {
 
   async signIn(email: string, password: string): Promise<{ accessToken: string }> {
     const baseUrl = await getApiUrl();
-    const res = await fetch(`${baseUrl}/api/auth/anonymous`, {
+    const res = await fetch(`${baseUrl}/api/auth/signin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
+      body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) throw new Error('Auth failed');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+      throw new Error(`Server returned ${res.status}: ${err.message}`);
+    }
     const data = await res.json();
     setToken(data.accessToken);
     return { accessToken: data.accessToken };
-  },
-
-  async anonSignIn(): Promise<string> {
-    const baseUrl = await getApiUrl();
-    const res = await fetch(`${baseUrl}/api/auth/anonymous`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) throw new Error('Anonymous sign-in failed');
-    const data = await res.json();
-    setToken(data.accessToken);
-    return data.accessToken;
   },
 
   async pushVaultSeed(seed: VaultSeedData): Promise<{ success: boolean }> {
@@ -115,7 +106,12 @@ export const api = {
   },
 
   async pullSeedByPairing(pairingId: string): Promise<VaultSeedData | null> {
-    return apiFetch(`/vault/seed/pair/${pairingId}`);
+    try {
+      return await apiFetch<VaultSeedData>(`/vault/seed/pair/${pairingId}`);
+    } catch (e: any) {
+      if (e.message?.includes('404')) return null;
+      throw e;
+    }
   },
 
   async push(changes: PushChange[]): Promise<{ accepted: number }> {

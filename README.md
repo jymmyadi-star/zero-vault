@@ -3,21 +3,22 @@
 
 ![Zero Vault Banner](https://via.placeholder.com/1200x400/08080C/FFFFFF?text=ZERO+VAULT+-+Self-Custodial+Security)
 
-**Zero Vault** is a next-generation, zero-knowledge password manager and security enclave built with React Native (Expo) and WatermelonDB. It features an avant-garde "Spatial Liquid Glass" aesthetic and military-grade cryptography designed to protect your most sensitive digital credentials.
+**Zero Vault** is a next-generation, zero-knowledge password manager and security enclave. It features an avant-garde "Spatial Liquid Glass" aesthetic and military-grade cryptography designed to protect your most sensitive digital credentials. Available as a React Native mobile application and a Chrome Browser Extension.
 
 ## ✨ Features
-*   **Zero-Knowledge Architecture:** Your Master PIN never leaves the device. All data is encrypted locally using `XChaCha20-Poly1305` before syncing.
-*   **GPU-Resistant KDF:** Master keys are derived using `Argon2id`, offering state-of-the-art protection against brute-force and ASIC attacks.
-*   **Offline-First & Local Persistence:** Lightning-fast offline access via WatermelonDB with lazy-loading capabilities.
-*   **Real-Time Sovereign Sync:** Hybrid Logical Clocks (HLC) and WebSockets handle conflict-free synchronization across all your devices.
+*   **Zero-Knowledge Architecture:** Your Master Password/PIN never leaves the device. All data is encrypted locally using `XChaCha20-Poly1305` before syncing.
+*   **GPU-Resistant KDF:** Master keys are derived using `PBKDF2-HMAC-SHA512` (150,000 iterations) via native bindings, offering state-of-the-art protection against brute-force and ASIC attacks.
+*   **Offline-First & Local Persistence:** Lightning-fast offline access via WatermelonDB (Mobile) with lazy-loading capabilities.
+*   **Real-Time Sovereign Sync:** Hybrid Logical Clocks (HLC), WebSockets, and a Mutex Queue Engine handle conflict-free, concurrent synchronization across all your devices without data loss.
 *   **Avant-Garde UI:** "Spatial Liquid Glass" design language featuring deep ambient lighting, micro-animations, and fluid transitions.
-*   **Auto-Lock & Memory Purge:** Advanced lifecycle tracking ensures plaintext memory is zeroed out (`.fill(0)`) and the vault is locked when the app goes to the background.
+*   **Auto-Lock & Memory Purge:** Advanced lifecycle tracking ensures plaintext memory is zeroed out (`SecureBuffer.dispose()`) and the vault is locked when the app goes to the background. Also features OS-level screenshot prevention in the App Switcher.
+*   **Browser Extension:** Native autofill capabilities strictly guarded against phishing by validating DNS boundaries.
 *   **Data Portability:** Seamlessly import and export your vault to/from Bitwarden, 1Password, Chrome, or generic CSVs.
 
 ## 🔐 Cryptographic Implementation
 Zero Vault takes no shortcuts when it comes to cryptography:
-1.  **Key Derivation:** The user's Master PIN is stretched using `Argon2id` alongside a securely generated Device Salt (stored in the hardware enclave).
-2.  **Key Wrapping:** Memory-safe `SecureBuffer` instances wrap the VaultKey, CipherKey, and SignKey.
+1.  **Key Derivation:** The user's Master PIN/Password is stretched using `PBKDF2-HMAC-SHA512` alongside a securely generated Device Salt (stored in the hardware enclave).
+2.  **Key Wrapping:** Memory-safe `SecureBuffer` instances wrap the VaultKey, CipherKey, and SignKey. The memory is immediately overwritten with `0` when disposed to prevent RAM scraping.
 3.  **Data Encryption:** Vault payloads are serialized to JSON and encrypted using `XChaCha20-Poly1305`.
 4.  **Integrity Validation:** Sync logs implement cryptographic hash chains (`verifyHashChain`) to prevent server rollback or tampering attacks.
 
@@ -38,10 +39,20 @@ Zero Vault takes no shortcuts when it comes to cryptography:
    ```bash
    npm install
    ```
-3. Run the development server:
+3. Run the development server (Mobile):
    ```bash
    npm run dev
    ```
+
+### Running the Browser Extension
+1. Build the extension:
+   ```bash
+   cd browser-extension
+   npm run build
+   ```
+2. Open Chrome and navigate to `chrome://extensions/`.
+3. Enable "Developer mode".
+4. Click "Load unpacked" and select the `browser-extension/dist` folder.
 
 ### Connecting to Cloud Sync (Optional)
 If you wish to use the synchronization engine, you must configure a Supabase instance:

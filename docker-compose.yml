@@ -5,7 +5,7 @@ services:
     build: .
     container_name: zerovault-api
     ports:
-      - "${PORT:-4000}:4000"
+      - "127.0.0.1:${PORT:-4000}:4000"
     env_file:
       - .env.production
     environment:

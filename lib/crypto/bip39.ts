@@ -79,13 +79,21 @@ function mnemonicToEntropy(mnemonic: string): { entropy: Uint8Array; checksumVal
 
 export function generateMnemonic(): string {
   const entropy = randomBytes(MNEMONIC_ENTROPY_BITS / 8);
-  return entropyToMnemonic(entropy);
+  try {
+    return entropyToMnemonic(entropy);
+  } finally {
+    entropy.fill(0);
+  }
 }
 
 export function validateMnemonic(mnemonic: string): boolean {
   try {
     const result = mnemonicToEntropy(mnemonic);
-    return result.checksumValid;
+    try {
+      return result.checksumValid;
+    } finally {
+      result.entropy.fill(0);
+    }
   } catch {
     return false;
   }
@@ -96,5 +104,9 @@ export function mnemonicToSeed(mnemonic: string, passphrase: string = ''): Uint8
   const salt = 'mnemonic' + passphrase;
   const passwordBytes = new TextEncoder().encode(mnemonic);
   const saltBytes = new TextEncoder().encode(salt);
-  return pbkdf2(sha512, passwordBytes, saltBytes, { c: PBKDF2_ITERATIONS, dkLen: PBKDF2_KEYLEN });
+  try {
+    return pbkdf2(sha512, passwordBytes, saltBytes, { c: PBKDF2_ITERATIONS, dkLen: PBKDF2_KEYLEN });
+  } finally {
+    passwordBytes.fill(0);
+  }
 }

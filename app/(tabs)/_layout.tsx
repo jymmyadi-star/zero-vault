@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions, Easing, LayoutAnimation, Platform, UIManager } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { hapticTouch } from '../../lib/haptics';
 
@@ -21,6 +22,8 @@ const TABS = [
   { name: 'settings', title: 'Settings', icon: 'settings' },
 ] as const;
 
+import Svg, { LinearGradient as SvgLinearGradient, RadialGradient, Stop, Rect, Defs } from 'react-native-svg';
+
 function TabButton({ route, isFocused, onPress, tab }: any) {
   const animValue = useRef(new Animated.Value(isFocused ? 1 : 0)).current;
 
@@ -29,7 +32,7 @@ function TabButton({ route, isFocused, onPress, tab }: any) {
       toValue: isFocused ? 1 : 0,
       duration: 250,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1),
-      useNativeDriver: true, // No more layout thrashing!
+      useNativeDriver: true,
     }).start();
   }, [isFocused]);
 
@@ -48,6 +51,8 @@ function TabButton({ route, isFocused, onPress, tab }: any) {
     outputRange: [0, 1],
   });
 
+  const uniqueId = tab.name;
+
   return (
     <View style={[styles.tabContainer, { flex: isFocused ? 2.5 : 1 }]}>
       <TouchableOpacity
@@ -55,13 +60,39 @@ function TabButton({ route, isFocused, onPress, tab }: any) {
         activeOpacity={0.9}
         style={styles.tabTouch}
       >
-        <Animated.View style={[styles.activeBackground, { opacity: bgOpacity }]} />
+        {/* Volumetric Glass Background (White U-Shape, native gradients) */}
+        <Animated.View style={[StyleSheet.absoluteFillObject, { opacity: bgOpacity, borderRadius: 24, overflow: 'hidden' }]}>
+          {/* Layer 1: Black Core */}
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#050002' }]} />
+          {/* Layer 2: White glow pooling at the bottom */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.03)', 'rgba(255,255,255,0.45)']}
+            locations={[0, 0.35, 1]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Layer 2b: Black valley pushing glow into U-shape */}
+          <LinearGradient
+            colors={['rgba(5,0,2,1)', 'rgba(5,0,2,0.95)', 'rgba(5,0,2,0)']}
+            locations={[0, 0.4, 0.75]}
+            style={StyleSheet.absoluteFill}
+          />
+          {/* Layer 3: Outer Glass Edge */}
+          <View style={[StyleSheet.absoluteFillObject, {
+            borderRadius: 24,
+            borderBottomWidth: 1.5,
+            borderLeftWidth: 0.5,
+            borderRightWidth: 0.5,
+            borderTopWidth: 0.2,
+            borderColor: '#FFFFFF',
+            opacity: 0.12,
+          }]} />
+        </Animated.View>
         
         <Animated.View style={{ transform: [{ translateY }, { scale: iconScale }] }}>
           <Ionicons
             name={(tab.icon + (isFocused ? '' : '-outline')) as any}
             size={24}
-            color={isFocused ? '#FFFFFF' : '#8E8E93'}
+            color={isFocused ? '#FFFFFF' : 'rgba(255,255,255,0.4)'}
           />
         </Animated.View>
         
@@ -80,7 +111,8 @@ function TabButton({ route, isFocused, onPress, tab }: any) {
 function FloatingTabBar({ state, navigation }: any) {
   return (
     <View style={styles.container}>
-      <BlurView intensity={90} tint="dark" style={styles.blur}>
+      <BlurView intensity={30} tint="dark" style={styles.blur}>
+        <LinearGradient colors={['rgba(3, 0, 2, 0.95)', '#030002']} style={StyleSheet.absoluteFill} />
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
           const tab = TABS[index];
@@ -137,14 +169,17 @@ const styles = StyleSheet.create({
     right: TAB_BAR_MARGIN,
     zIndex: 100,
   },
+  tabGradientBorder: {
+    borderRadius: 36,
+    padding: 1,
+  },
   blur: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 36,
+    borderRadius: 35,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(18, 18, 20, 0.85)',
+    borderColor: 'rgba(255, 255, 255, 0.03)',
     height: 68,
     paddingHorizontal: 8,
   },
@@ -164,15 +199,13 @@ const styles = StyleSheet.create({
   },
   activeBackground: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   labelActive: {
     color: '#FFFFFF',
     fontWeight: '700',
-    fontSize: 13,
-    letterSpacing: 0.2,
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
 });

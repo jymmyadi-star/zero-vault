@@ -38,17 +38,22 @@ async function buildSyncPayload(
   const envelope = encryptPayload(plaintextPayload, dek, { entityId, operation });
 
   const signKeyCopy = signKey.copy();
+  const cipherKeyCopy = cipherKey.copy();
   const lastVerifiedHash = await readStoredHash();
-  const rawPayload = { envelope, wrappedDek: { iv: envelope.iv, ciphertext: envelope.ct, tag: envelope.tag } };
+  const wrappedDek = wrapKey(dek, cipherKeyCopy);
+  cipherKeyCopy.fill(0);
+  const rawPayload = { envelope, wrappedDek: { iv: bytesToHex(wrappedDek.iv), ciphertext: bytesToHex(wrappedDek.ciphertext), tag: bytesToHex(wrappedDek.tag) } };
   const chainPayload = stringify(rawPayload);
   const signature = computeSyncSignature(chainPayload, lastVerifiedHash, signKeyCopy);
   signKeyCopy.fill(0);
 
-  const serializedWrappedDek = JSON.stringify({
-    iv: bytesToHex(dek), ciphertext: '', tag: '',
-  });
+  const serializedWrappedDek = {
+    iv: bytesToHex(wrappedDek.iv),
+    ciphertext: bytesToHex(wrappedDek.ciphertext),
+    tag: bytesToHex(wrappedDek.tag),
+  };
 
-  dek.fill(0);
+  dek.copyWithin(0, 0, dek.length); dek.fill(0);
 
   return JSON.stringify({
     envelope,
@@ -118,16 +123,15 @@ export async function pushChangeViaApi(
       }
     }
   } catch (err: any) {
-    Logger.error('[Sync] Push failed — queuing to backlog', {
+    Logger.error('[Sync] Push failed — queuing to backlog', err, {
       module: 'SyncEngine',
       entityId,
-      error: err.message,
     });
     await enqueueToBacklog(entityId, entityType, operation, plaintextPayload);
   }
 }
 
-async function enqueueToBacklog(
+export async function enqueueToBacklog(
   entityId: string,
   entityType: string,
   operation: string,
@@ -209,7 +213,25 @@ async function enqueueToBacklog(
   }
 }
 
+let isDraining = false;
+let isDrainPending = false;
+
 export async function drainBacklog(): Promise<void> {
+  if (isDraining) { isDrainPending = true; return; }
+  isDraining = true;
+
+  try {
+    await doDrainBacklog();
+  } finally {
+    isDraining = false;
+    if (isDrainPending) {
+      isDrainPending = false;
+      drainBacklog();
+    }
+  }
+}
+
+async function doDrainBacklog(): Promise<void> {
   if (!getIsOnline()) return;
 
   const { syncEnabled, signKey } = useVaultStore.getState();
@@ -328,10 +350,15 @@ export async function drainBacklog(): Promise<void> {
         Logger.info('[Sync] Hash chain conflict during backlog drain — pulling to rebase', {
           module: 'SyncEngine', recordId: item.recordId,
         });
-        try { await pullChanges(); } catch (pullErr: any) {
+        try { 
+          await pullChanges(); 
+          // Refinement: Trigger a new drain cycle immediately so this item and others are pushed with the rebased hash.
+          isDrainPending = true;
+          break; // Exit current batch
+        } catch (pullErr: any) {
           Logger.warn('[Sync] Pull after backlog conflict failed', { module: 'SyncEngine', error: pullErr.message });
+          continue; // Move to next item or fail gracefully
         }
-        continue;
       }
 
       await db.write(async () => {

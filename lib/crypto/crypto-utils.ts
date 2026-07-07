@@ -4,6 +4,7 @@ import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256, sha512 } from '@noble/hashes/sha2.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { pbkdf2, pbkdf2Async } from '@noble/hashes/pbkdf2.js';
+import QuickCrypto from 'react-native-quick-crypto';
 
 export type EncryptedEnvelope = {
   v: number;
@@ -94,6 +95,7 @@ export function encryptPayload(
   const plaintextBytes = new TextEncoder().encode(plaintext);
   const cipher = xchacha20poly1305(key, iv, aadBytes);
   const encrypted = cipher.encrypt(plaintextBytes);
+  plaintextBytes.fill(0);
   const ct = encrypted.slice(0, -POLY1305_TAG_LENGTH);
   const tag = encrypted.slice(-POLY1305_TAG_LENGTH);
   return {
@@ -172,15 +174,28 @@ export async function deriveWithArgon2(
   }
 }
 
-export function deriveWithPBKDF2(
+export async function deriveWithPBKDF2Async(
   password: string,
   salt: Uint8Array,
   iterations: number = 150000,
   length: number = 32,
-): Uint8Array {
-  const passwordBytes = new TextEncoder().encode(password);
-  return pbkdf2(sha512, passwordBytes, salt, { c: iterations, dkLen: length });
+): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    QuickCrypto.pbkdf2(
+      password,
+      Buffer.from(salt),
+      iterations,
+      length,
+      'sha512',
+      (err, derivedKey) => {
+        if (err) reject(err);
+        else if (derivedKey) resolve(new Uint8Array(derivedKey));
+        else reject(new Error('PBKDF2 async returned empty key'));
+      }
+    );
+  });
 }
+
 
 export function timingSafeCompare(a: string, b: string): boolean {
   let mismatch = 0;
@@ -194,7 +209,11 @@ export function timingSafeCompare(a: string, b: string): boolean {
 
 export function mnemonicToSeed(mnemonic: string): Uint8Array {
   const pw = new TextEncoder().encode(mnemonic.trim().toLowerCase().replace(/\s+/g, ' '));
-  return pbkdf2(sha512, pw, new TextEncoder().encode('mnemonic'), { c: 2048, dkLen: 64 });
+  try {
+    return pbkdf2(sha512, pw, new TextEncoder().encode('mnemonic'), { c: 2048, dkLen: 64 });
+  } finally {
+    pw.fill(0);
+  }
 }
 
 export function deriveWithHKDF(masterKey: Uint8Array, info: string, length = 32): Uint8Array {
@@ -209,4 +228,13 @@ export function derivePairingId(seed: Uint8Array): string {
   const hex = bytesToHex(raw);
   raw.fill(0);
   return hex;
+}
+
+export function deriveDeviceCredentials(pairingIdHex: string): { email: string; password: string } {
+  const pairingId = hexToBytes(pairingIdHex);
+  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('zerovault-auth-pw-v1'), 32);
+  const email = `zk_${pairingIdHex.slice(0, 16)}@zerovault.local`;
+  const password = bytesToHex(pw);
+  pw.fill(0);
+  return { email, password };
 }

@@ -1,4 +1,8 @@
 import { randomBytes } from './crypto-utils';
+import { EFF_WORDLIST } from '../eff-wordlist';
+
+const WORD_COUNT = EFF_WORDLIST.length;
+const REJECTION_THRESHOLD = Math.floor(65536 / WORD_COUNT) * WORD_COUNT;
 
 const UPPERCASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const LOWERCASE = 'abcdefghijklmnopqrstuvwxyz';
@@ -108,23 +112,13 @@ export function entropyLabel(entropy: number): 'weak' | 'medium' | 'strong' | 'v
   return 'vault-grade';
 }
 
-const DICE_WORDS = [
-  'alpha', 'bravo', 'cipher', 'delta', 'echo', 'foxtrot', 'gamma',
-  'helix', 'ion', 'juliett', 'kilo', 'lunar', 'matrix', 'nova',
-  'omega', 'photon', 'quantum', 'reactor', 'sigma', 'tango',
-  'ultra', 'vector', 'whiskey', 'xenon', 'yankee', 'zenith',
-  'anchor', 'binary', 'cosmic', 'drift', 'ember', 'frost',
-  'ghost', 'horizon', 'index', 'jade', 'kernel', 'lucid',
-  'mirage', 'neon', 'onyx', 'prism', 'relay', 'shadow',
-  'titan', 'umbra', 'vault', 'warp', 'xray', 'yield', 'zero',
-];
-
 export function generatePassphrase(wordCount: number = 6, separator: string = '-'): string {
-  const bytes = randomBytes(wordCount * 2);
   const words: string[] = [];
   for (let i = 0; i < wordCount; i++) {
-    const idx = (bytes[i * 2]! << 8 | bytes[i * 2 + 1]!) % DICE_WORDS.length;
-    words.push(DICE_WORDS[idx]!);
+    const single = new Uint16Array(1);
+    let val: number;
+    do { crypto.getRandomValues(single); val = single[0]!; } while (val >= REJECTION_THRESHOLD);
+    words.push(EFF_WORDLIST[val % WORD_COUNT]!);
   }
   return words.join(separator);
 }

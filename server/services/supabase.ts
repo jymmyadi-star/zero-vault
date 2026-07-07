@@ -30,45 +30,58 @@ export function getSupabaseAnon(): SupabaseClient {
 }
 
 export async function verifyJwt(jwt: string): Promise<{ id: string; email: string | null; isAnonymous: boolean } | null> {
-  const supabase = getSupabaseAnon();
-  const { data, error } = await supabase.auth.getUser(jwt);
+  try {
+    const supabase = getSupabaseAnon();
+    const { data, error } = await supabase.auth.getUser(jwt);
 
-  if (error || !data.user) return null;
+    if (error || !data.user) return null;
 
-  return {
-    id: data.user.id,
-    email: data.user.email || null,
-    isAnonymous: data.user.user_metadata?.is_anonymous === true,
-  };
+    return {
+      id: data.user.id,
+      email: data.user.email || null,
+      isAnonymous: data.user.user_metadata?.is_anonymous === true,
+    };
+  } catch (err) {
+    return null;
+  }
 }
 
-export async function signInAnonymous(): Promise<{ session: { access_token: string; refresh_token: string; expires_in: number }; user: { id: string } }> {
+export async function signInDeterministic(email: string, password: string): Promise<{ session: { access_token: string; refresh_token: string; expires_in: number }; user: { id: string } }> {
   const supabase = getSupabaseAnon();
-  const email = `anon_${Date.now()}_${Math.random().toString(36).substring(2, 8)}@anonymous.local`;
-  const password = crypto.randomUUID();
 
-  const { data, error } = await supabase.auth.signUp({
+  // Try sign-up first — if the user already exists, Supabase returns an error.
+  // Catch it and sign in instead.
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
     email,
     password,
-    options: {
-      data: { is_anonymous: true },
-    },
   });
 
-  if (error || !data.user) {
-    throw new Error('Anonymous sign-in failed');
+  if (signUpData?.session) {
+    return {
+      session: {
+        access_token: signUpData.session.access_token,
+        refresh_token: signUpData.session.refresh_token,
+        expires_in: signUpData.session.expires_in,
+      },
+      user: { id: signUpData.user!.id },
+    };
   }
 
-  if (!data.session) {
-    throw new Error('Anonymous sign-in failed: no session returned');
+  // User already exists — sign in
+  if (signUpError && (signUpError.status === 400 || signUpError.message?.includes('already') || signUpError.message?.includes('registered'))) {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError || !signInData.session) {
+      throw new Error('Deterministic sign-in failed: ' + (signInError?.message || 'no session'));
+    }
+    return {
+      session: {
+        access_token: signInData.session.access_token,
+        refresh_token: signInData.session.refresh_token,
+        expires_in: signInData.session.expires_in,
+      },
+      user: { id: signInData.user!.id },
+    };
   }
 
-  return {
-    session: {
-      access_token: data.session.access_token,
-      refresh_token: data.session.refresh_token,
-      expires_in: data.session.expires_in,
-    },
-    user: { id: data.user.id },
-  };
+  throw new Error('Deterministic sign-in failed: ' + (signUpError?.message || 'unknown'));
 }

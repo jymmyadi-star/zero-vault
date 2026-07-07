@@ -9,26 +9,35 @@ import { initSyncState } from '../sync/index';
 
 const DatabaseContext = createContext<DatabaseType | null>(null);
 
-let globalErrorPatched = false;
-function patchWatermelonDBError() {
-  if (globalErrorPatched) return;
-  globalErrorPatched = true;
+let globalPatched = false;
+function suppressWatermelonDBErrors() {
+  if (globalPatched) return;
+  globalPatched = true;
+
+  try {
+    const Result = require('@nozbe/watermelondb/utils/fp/Result');
+    const origFromPromise = Result.fromPromise;
+    Result.fromPromise = function (promise: Promise<any>, callback?: (result: any) => void) {
+      const safeCb = typeof callback === 'function' ? callback : () => {};
+      return origFromPromise(promise, safeCb);
+    };
+  } catch {}
+
   try {
     const g = global as any;
     const origHandler = g.ErrorUtils?.getGlobalHandler() || (() => {});
     g.ErrorUtils?.setGlobalHandler((error: Error, isFatal?: boolean) => {
-      if (error?.message?.includes('callback is not a function')) return;
+      if (typeof error?.message === 'string' && error.message.includes('callback is not a function')) return;
       origHandler(error, isFatal);
     });
   } catch {}
 }
-
 export function DatabaseProvider({ children, vaultKeyHex }: { children: ReactNode; vaultKeyHex: string }) {
   const [db, setDb] = useState<DatabaseType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    patchWatermelonDBError();
+    suppressWatermelonDBErrors();
 
     initializeDatabase(vaultKeyHex)
       .then((database) => {
@@ -38,14 +47,6 @@ export function DatabaseProvider({ children, vaultKeyHex }: { children: ReactNod
         try {
           initSyncState();
         } catch {}
-
-        setTimeout(() => {
-          try {
-            const g = global as any;
-            const h = g.ErrorUtils?.getGlobalHandler();
-            if (h) g.ErrorUtils?.setGlobalHandler(h);
-          } catch {}
-        }, 2000);
       })
       .catch((err) => {
         Logger.error('[DatabaseProvider] Init failed', err, { module: 'DatabaseProvider' });

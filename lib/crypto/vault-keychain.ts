@@ -12,7 +12,7 @@ import {
   randomBytes, generateRandomKey, wrapKey, unwrapKey,
   serializeWrappedKey, deserializeWrappedKey,
   computeSyncSignature, bytesToHex, hexToBytes,
-  timingSafeCompare, deriveWithArgon2, derivePairingId,
+  timingSafeCompare, deriveWithPBKDF2Async, derivePairingId,
   type WrappedKey,
 } from './crypto-utils';
 import { SecureBuffer } from './secure-buffer';
@@ -23,17 +23,17 @@ import {
 } from '../result';
 
 const SECURESTORE_KEYS = {
-  DEVICE_SALT: 'zerovault_device_salt',
-  WRAPPED_VAULT_KEY: 'zerovault_wrapped_vault_key',
-  WRAPPED_CIPHER_KEY: 'zerovault_wrapped_cipher_key',
-  WRAPPED_SIGN_KEY: 'zerovault_wrapped_sign_key',
-  PIN_VERIFY_HASH: 'zerovault_pin_verify_hash',
-  PIN_VERIFY_SALT: 'zerovault_pin_verify_salt',
-  PIN_ATTEMPT_COUNT: 'zerovault_pin_attempts',
-  PIN_LAST_ATTEMPT: 'zerovault_pin_last_attempt',
-  HAS_RECOVERY_SEED: 'zerovault_has_recovery_seed',
-  KEY_EPOCH: 'zerovault_key_epoch',
-  PAIRING_ID: 'zerovault_pairing_id',
+  DEVICE_SALT: 'zerovault_device_salt_v3',
+  WRAPPED_VAULT_KEY: 'zerovault_wrapped_vault_key_v3',
+  WRAPPED_CIPHER_KEY: 'zerovault_wrapped_cipher_key_v3',
+  WRAPPED_SIGN_KEY: 'zerovault_wrapped_sign_key_v3',
+  PIN_VERIFY_HASH: 'zerovault_pin_verify_hash_v3',
+  PIN_VERIFY_SALT: 'zerovault_pin_verify_salt_v3',
+  PIN_ATTEMPT_COUNT: 'zerovault_pin_attempts_v3',
+  PIN_LAST_ATTEMPT: 'zerovault_pin_last_attempt_v3',
+  HAS_RECOVERY_SEED: 'zerovault_has_recovery_seed_v3',
+  KEY_EPOCH: 'zerovault_key_epoch_v3',
+  PAIRING_ID: 'zerovault_pairing_id_v3',
 } as const;
 
 const MAX_PIN_ATTEMPTS = 5;
@@ -88,7 +88,7 @@ function zeroBuffer(buf: Uint8Array | null): void {
 }
 
 async function computePinVerifyHash(pin: string, salt: Uint8Array): Promise<string> {
-  const hash = await deriveWithArgon2(pin, salt);
+  const hash = await deriveWithPBKDF2Async(pin, salt);
   const hex = bytesToHex(hash);
   hash.fill(0);
   return hex;
@@ -106,7 +106,7 @@ async function verifyPin(pin: string, saltHex: string | null, storedHash: string
 export async function isVaultSetup(): Promise<boolean> {
   try {
     const salt = await SecureStore.getItemAsync(SECURESTORE_KEYS.DEVICE_SALT);
-    return salt !== null && salt.length > 0;
+    return salt !== null && salt.length > 0 && salt !== 'PURGED';
   } catch { return false; }
 }
 
@@ -138,7 +138,7 @@ export async function createVault(pin: string): Promise<VaultGenesisResult> {
     const deviceSalt = SecureBuffer.random(32);
     await SecureStore.setItemAsync(SECURESTORE_KEYS.DEVICE_SALT, deviceSalt.toHex());
 
-    masterKey = await deriveWithArgon2(pin, deviceSalt.copy());
+    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt.copy());
     deviceSalt.dispose();
     wrappingKey = deriveWrapKey(masterKey);
 
@@ -207,7 +207,7 @@ export async function unlockVault(pin: string): Promise<VaultKeySet | null> {
   let wrappingKey: SecureBuffer | null = null;
 
   try {
-    masterKey = await deriveWithArgon2(pin, deviceSalt);
+    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt);
 
     wrappingKey = deriveWrapKey(masterKey);
 
@@ -272,7 +272,7 @@ export async function importVaultSeed(pin: string, seed: VaultSeed): Promise<Vau
 
   try {
     const deviceSalt = hexToBytes(seed.deviceSalt);
-    masterKey = await deriveWithArgon2(pin, deviceSalt);
+    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt);
 
     if (!(await verifyPin(pin, seed.pinVerifySalt, seed.pinVerifyHash))) {
       throw new Error('INCORRECT_PASSWORD: The Master Password does not match this vault seed.');
@@ -339,7 +339,7 @@ export async function recoverWithMnemonic(mnemonic: string, newPin: string): Pro
     }
 
     const deviceSalt = hexToBytes(deviceSaltHex);
-    newMasterKey = await deriveWithArgon2(newPin, deviceSalt);
+    newMasterKey = await deriveWithPBKDF2Async(newPin, deviceSalt);
     newWrappingKey = deriveWrapKey(newMasterKey);
 
     const wVault = wrapKey(vaultKeyBuf.copy(), newWrappingKey.copy());
@@ -382,7 +382,7 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
     return null;
   }
 
-  const oldMasterKey = await deriveWithArgon2(oldPin, deviceSalt);
+  const oldMasterKey = await deriveWithPBKDF2Async(oldPin, deviceSalt);
 
   const oldWrappingKey = deriveWrapKey(oldMasterKey);
   const wVaultStr = await SecureStore.getItemAsync(SECURESTORE_KEYS.WRAPPED_VAULT_KEY);
@@ -394,11 +394,13 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
   const cipherKey = unwrapKey(deserializeWrappedKey(wCipherStr), oldWrappingKey.copy());
   const signKey = unwrapKey(deserializeWrappedKey(wSignStr), oldWrappingKey.copy());
 
+  zeroBuffer(oldMasterKey); oldWrappingKey.dispose();
+
   let newMasterKey: Uint8Array | null = null;
   let newWrappingKey: SecureBuffer | null = null;
 
   try {
-    newMasterKey = await deriveWithArgon2(newPin, deviceSalt);
+    newMasterKey = await deriveWithPBKDF2Async(newPin, deviceSalt);
     newWrappingKey = deriveWrapKey(newMasterKey);
 
     const nWVault = wrapKey(vaultKey, newWrappingKey.copy());
@@ -415,8 +417,12 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
     newPinVerifySalt.dispose();
     await SecureStore.setItemAsync(SECURESTORE_KEYS.PIN_VERIFY_HASH, newPinVerifyHash);
     await SecureStore.setItemAsync(SECURESTORE_KEYS.PIN_ATTEMPT_COUNT, '0');
+  } catch (e) {
+    zeroBuffer(vaultKey);
+    zeroBuffer(cipherKey);
+    zeroBuffer(signKey);
+    throw e;
   } finally {
-    zeroBuffer(oldMasterKey); oldWrappingKey.dispose();
     zeroBuffer(newMasterKey); newWrappingKey?.dispose();
   }
 
@@ -428,13 +434,25 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
 
 export async function purgeVault(): Promise<void> {
   const keys = Object.values(SECURESTORE_KEYS);
+  const errors: string[] = [];
   for (const key of keys) {
-    try { await SecureStore.deleteItemAsync(key); } catch {}
+    try { 
+      await SecureStore.setItemAsync(key, 'PURGED');
+      await SecureStore.deleteItemAsync(key); 
+    }
+    catch { errors.push(key); }
   }
-  try { await SecureStore.deleteItemAsync('zerovault_biometric_dbkey'); } catch {}
-  try { await SecureStore.deleteItemAsync('zerovault_biometric_cipherkey'); } catch {}
-  try { await SecureStore.deleteItemAsync('zerovault_biometric_signkey'); } catch {}
-  try { await SecureStore.deleteItemAsync('zerovault_biometric_pin'); } catch {}
+  const bioKeys = ['zerovault_biometric_dbkey_v3', 'zerovault_biometric_cipherkey_v3', 'zerovault_biometric_signkey_v3', 'zerovault_biometric_pin_v3'];
+  for (const key of bioKeys) {
+    try { 
+      await SecureStore.setItemAsync(key, 'PURGED');
+      await SecureStore.deleteItemAsync(key); 
+    }
+    catch { errors.push(key); }
+  }
+  if (errors.length > 0) {
+    throw new Error(`Purge partially failed. Remaining keys: ${errors.join(', ')}`);
+  }
 }
 
 // ─── SAFE API: Result<T, DomainError> — enterprise error handling ───

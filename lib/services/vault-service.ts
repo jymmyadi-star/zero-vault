@@ -32,8 +32,8 @@ export type VaultItemMetadata = {
 };
 
 function assertUnlocked(): Uint8Array {
-  const { cipherKey } = useVaultStore.getState();
-  if (!cipherKey) throw new Error('VAULT_LOCKED: cipherKey not available');
+  const { cipherKey, status } = useVaultStore.getState();
+  if (!cipherKey) throw new Error(`VAULT_LOCKED: cipherKey not available (Status: ${status})`);
   return cipherKey.copy();
 }
 

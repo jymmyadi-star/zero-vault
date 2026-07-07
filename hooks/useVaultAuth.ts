@@ -5,7 +5,7 @@
  * Modes: loading | unlock | setup | setup_confirm | locked | mnemonic_show | recover
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Alert, Animated } from 'react-native';
+import { Alert, Animated, InteractionManager } from 'react-native';
 import { router } from 'expo-router';
 import { useVaultStore } from '../lib/store/vault-store';
 import {
@@ -13,6 +13,7 @@ import {
   recoverWithMnemonic, hasRecoverySeed,
   type VaultKeySet, type VaultGenesisResult,
 } from '../lib/crypto/vault-keychain';
+import { validateMnemonic } from '../lib/crypto/bip39';
 import { kv } from '../lib/storage';
 import { Logger } from '../lib/logger';
 import { hapticTouch, hapticSuccess, hapticError, hapticWarning } from '../lib/haptics';
@@ -23,7 +24,7 @@ const MAX_FAILED_ATTEMPTS = 5;
 
 export type VaultMode =
   | 'loading' | 'unlock' | 'setup' | 'setup_confirm'
-  | 'locked' | 'mnemonic_show' | 'recover';
+  | 'locked' | 'mnemonic_show' | 'recover' | 'recover_pin';
 
 export function useVaultAuth() {
   const { setStatus, unlock: unlockStore } = useVaultStore();
@@ -58,9 +59,9 @@ export function useVaultAuth() {
       if (!has || !enrolled) return;
 
       const SecureStore = require('expo-secure-store');
-      const vk = await SecureStore.getItemAsync('zerovault_biometric_dbkey', { requireAuthentication: true });
-      const ck = await SecureStore.getItemAsync('zerovault_biometric_cipherkey', { requireAuthentication: true });
-      const sk = await SecureStore.getItemAsync('zerovault_biometric_signkey', { requireAuthentication: true });
+      const vk = await SecureStore.getItemAsync('zerovault_biometric_dbkey_v3', { requireAuthentication: true });
+      const ck = await SecureStore.getItemAsync('zerovault_biometric_cipherkey_v3', { requireAuthentication: true });
+      const sk = await SecureStore.getItemAsync('zerovault_biometric_signkey_v3', { requireAuthentication: true });
 
       if (vk && ck && sk) {
         const { hexToBytes } = await import('../lib/crypto/crypto-utils');
@@ -85,8 +86,10 @@ export function useVaultAuth() {
         setMode('locked');
       } else if (setup) {
         setMode('unlock');
+        const storeStatus = useVaultStore.getState().status;
+        const justMounted = storeStatus !== 'locked';
         const bio = kv.get('zerovault_biometric_enabled') === 'true';
-        if (bio) triggerBiometricUnlock();
+        if (bio && !justMounted) triggerBiometricUnlock();
       } else {
         setMode('setup');
       }
@@ -101,33 +104,30 @@ export function useVaultAuth() {
     setError(null);
     await hapticTouch();
 
-    if (mode === 'recover') {
-      const newInput = recoveryInput + digit;
-      setRecoveryInput(newInput);
-      if (newInput.length >= 24) {
+    if (mode === 'recover_pin') {
+      const newPin = pin + digit;
+      if (newPin.length >= MIN_PASSWORD_LENGTH) {
+        setPin(newPin);
         setProcessing(true);
+        await new Promise<void>(r => InteractionManager.runAfterInteractions(() => r()));
+
         try {
-          const word = newInput;
-          const hasSeed = await hasRecoverySeed();
-          if (!hasSeed) throw new Error('No recovery seed on this device.');
-          if (!pin || pin.length < MIN_PASSWORD_LENGTH) {
-            setError('Please create a password (minimum 8 characters) before recovering.');
-            setProcessing(false);
-            return;
-          }
-          const keySet = await recoverWithMnemonic(word, pin);
+          const word = recoveryInput.trim().toLowerCase();
+          const keySet = await recoverWithMnemonic(word, newPin);
           await hapticSuccess();
           unlockStore(keySet);
           setStatus('unlocked');
         } catch (e: any) {
-          setError('Recovery failed: ' + (e.message || 'Unknown'));
-          setRecoveryInput('');
-          setMode('unlock');
+          setError('Recovery failed: ' + (e?.message || 'Invalid phrase'));
+          setPin('');
+          setMode('recover');
           shake();
           await hapticError();
         } finally {
           setProcessing(false);
         }
+      } else {
+        setPin(newPin);
       }
       return;
     }
@@ -137,6 +137,8 @@ export function useVaultAuth() {
       if (newPin.length >= MIN_PASSWORD_LENGTH) {
         setConfirmPin(newPin);
         setProcessing(true);
+        await new Promise<void>(r => InteractionManager.runAfterInteractions(() => r()));
+
         try {
           if (newPin !== pin) {
             setError('Password mismatch.');
@@ -149,10 +151,15 @@ export function useVaultAuth() {
           const result: VaultGenesisResult = await createVault(newPin);
           await hapticSuccess();
           setGeneratedMnemonic(result.mnemonic);
+          useVaultStore.getState().setTempMnemonic(result.mnemonic);
+          
+          // DO NOT setMode('mnemonic_show') here because unlockStore(result.keySet) 
+          // will change status to 'unlocked', which instantly unmounts UnlockScreen.
+          // Instead, layout.tsx will intercept and redirect to /auth/phrase-intro.
           unlockStore(result.keySet);
-          setMode('mnemonic_show');
-        } catch {
-          setError('Vault genesis failed.');
+        } catch (e: any) {
+          setError('Genesis failed: ' + (e?.message || 'Unknown error'));
+          console.error('[VaultAuth] Genesis Error:', e);
           setConfirmPin('');
           setPin('');
           setMode('setup');
@@ -172,6 +179,7 @@ export function useVaultAuth() {
     if (newPin.length >= MIN_PASSWORD_LENGTH) {
       setPin(newPin);
       setProcessing(true);
+      await new Promise<void>(r => InteractionManager.runAfterInteractions(() => r()));
 
       if (mode === 'setup') {
         setMode('setup_confirm');
@@ -212,8 +220,8 @@ export function useVaultAuth() {
     if (processing) return;
     setError(null);
 
-    if (mode === 'recover') {
-      setRecoveryInput(prev => prev.slice(0, -1));
+    if (mode === 'recover_pin') {
+      setPin(prev => prev.slice(0, -1));
       return;
     }
     if (mode === 'setup_confirm') {
@@ -233,11 +241,29 @@ export function useVaultAuth() {
     router.replace('/(tabs)');
   }, []);
 
+  const handleRecoveryInput = useCallback((text: string) => {
+    setRecoveryInput(text);
+    
+    // Auto-advance if the phrase is mathematically valid
+    const cleanPhrase = text.trim().toLowerCase().replace(/\s+/g, ' ');
+    const wordCount = cleanPhrase.split(' ').length;
+    
+    // Only attempt validation if we have 12, 15, 18, 21, or 24 words
+    if ([12, 15, 18, 21, 24].includes(wordCount)) {
+      if (validateMnemonic(cleanPhrase)) {
+        setError(null);
+        setPin('');
+        setMode('recover_pin');
+      }
+    }
+  }, []);
+
   const handleDeleteVault = useCallback(() => {
     Alert.alert('Purge Vault', 'Delete all data and create a new vault?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Purge', style: 'destructive', onPress: () => {
         import('../lib/crypto/vault-keychain').then(mod => {
+          kv.delete('zerovault_phrase_verified');
           mod.purgeVault();
           setMode('setup');
           setPin('');
@@ -252,7 +278,7 @@ export function useVaultAuth() {
     shakeAnim, pulseAnim,
     handleKeyPress, handleBackspace, handleClear,
     handleSkipRecovery, handleDeleteVault,
-    checkVaultState, setMode, setPin, setRecoveryInput,
+    checkVaultState, setMode, setPin, handleRecoveryInput, setRecoveryInput,
     MIN_PASSWORD_LENGTH,
   };
 }

@@ -69,6 +69,7 @@ export function encryptPayload(payload: Record<string, unknown>, key: Uint8Array
   const plaintext = new TextEncoder().encode(JSON.stringify(payload));
   const cipher = xchacha20poly1305(key, iv, aadBytes);
   const encrypted = cipher.encrypt(plaintext);
+  plaintext.fill(0);
   return {
     v: 1,
     alg: 'xchacha20-poly1305',
@@ -93,7 +94,12 @@ export function decryptPayload(envelope: EncryptedEnvelope, key: Uint8Array): Re
 }
 
 export function deriveWithPBKDF2(password: string, salt: Uint8Array, length = 32): Uint8Array {
-  return pbkdf2(sha512, new TextEncoder().encode(password), salt, { c: 150_000, dkLen: length });
+  const pwBytes = new TextEncoder().encode(password);
+  try {
+    return pbkdf2(sha512, pwBytes, salt, { c: 150_000, dkLen: length });
+  } finally {
+    pwBytes.fill(0);
+  }
 }
 
 export function deriveWithHKDF(masterKey: Uint8Array, info: string, length = 32): Uint8Array {
@@ -108,9 +114,22 @@ export function derivePairingId(seed: Uint8Array): string {
   return hex;
 }
 
+export function deriveDeviceCredentials(pairingIdHex: string): { email: string; password: string } {
+  const pairingId = hexToBytes(pairingIdHex);
+  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('zerovault-auth-pw-v1'), 32);
+  const email = `zk_${pairingIdHex.slice(0, 16)}@zerovault.local`;
+  const password = bytesToHex(pw);
+  pw.fill(0);
+  return { email, password };
+}
+
 export function mnemonicToSeed(mnemonic: string): Uint8Array {
   const pw = new TextEncoder().encode(mnemonic.trim().toLowerCase().replace(/\s+/g, ' '));
-  return pbkdf2(sha512, pw, new TextEncoder().encode('mnemonic'), { c: 2048, dkLen: 64 });
+  try {
+    return pbkdf2(sha512, pw, new TextEncoder().encode('mnemonic'), { c: 2048, dkLen: 64 });
+  } finally {
+    pw.fill(0);
+  }
 }
 
 export function computeSignature(payload: string, prevHash: string | null, key: Uint8Array): string {

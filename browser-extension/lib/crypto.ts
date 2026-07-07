@@ -17,6 +17,7 @@ export {
   deriveWithPBKDF2,
   deriveWithHKDF,
   derivePairingId,
+  deriveDeviceCredentials,
   computeSignature,
   timingSafeCompare,
   type WrappedKey,

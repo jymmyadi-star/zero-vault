@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
 import { createVaultItem, updateVaultItem, getVaultItemById } from '../lib/services/vault-service';
+import { NoteBackground } from '../components/NoteBackground';
 
 import { hapticSuccess } from '../lib/haptics';
 
@@ -86,31 +87,7 @@ export default function CreateNoteScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
 
-      {/* Pure Black Background with Perfectly Smooth Vignette Glow */}
-      <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
-        {/* 1. Vertical Band (Transitions from Purple at bottom to Indigo/Blue at the top) */}
-        <LinearGradient 
-          colors={['#000000', '#040B1A', '#0A113A', '#270E4D', '#0C041A', '#000000']} 
-          locations={[0, 0.2, 0.45, 0.75, 0.95, 1]}
-          style={StyleSheet.absoluteFillObject} 
-        />
-        {/* 2. Left Black Fade (Squeezes light inward to make it narrower) */}
-        <LinearGradient 
-          colors={['#000000', '#000000', 'transparent']} 
-          locations={[0, 0.4, 1]}
-          start={{ x: 0, y: 0 }} 
-          end={{ x: 1, y: 0 }}
-          style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '50%' }} 
-        />
-        {/* 3. Right Black Fade (Squeezes light inward to make it narrower) */}
-        <LinearGradient 
-          colors={['transparent', '#000000', '#000000']} 
-          locations={[0, 0.6, 1]}
-          start={{ x: 0, y: 0 }} 
-          end={{ x: 1, y: 0 }}
-          style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '50%' }} 
-        />
-      </View>
+      <NoteBackground />
 
       {/* Note Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
@@ -145,6 +122,8 @@ export default function CreateNoteScreen() {
               value={folder}
               onChangeText={setFolder}
               autoCapitalize="characters"
+              selectionColor="#FFFFFF"
+              cursorColor="#FFFFFF"
             />
           </View>
           {content.length > 0 && (
@@ -162,7 +141,8 @@ export default function CreateNoteScreen() {
           value={title}
           onChangeText={setTitle}
           autoCapitalize="sentences"
-          selectionColor="#A855F7"
+          selectionColor="#FFFFFF"
+          cursorColor="#FFFFFF"
         />
 
         {/* Divider */}
@@ -178,7 +158,8 @@ export default function CreateNoteScreen() {
             onChangeText={setContent}
             multiline
             textAlignVertical="top"
-            selectionColor="#A855F7"
+            selectionColor="#FFFFFF"
+            cursorColor="#FFFFFF"
             keyboardAppearance="dark"
           />
         </View>

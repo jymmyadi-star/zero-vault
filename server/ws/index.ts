@@ -5,13 +5,11 @@ import { handleConnection, startHeartbeat, getConnectionStats } from './handlers
 import { Logger } from '../services/logger.js';
 import { verifyJwt } from '../services/supabase.js';
 
+const wsLib = require('ws') as any;
+
 const wsStatsRouter = Router();
 
-wsStatsRouter.get('/stats', (_req, res) => {
-  res.json(getConnectionStats());
-});
-
-import { WebSocketServer } from 'ws';
+// Stats route removed for security reasons.
 
 const WS_RATE_LIMIT_MAX = 30;
 const WS_RATE_LIMIT_WINDOW_MS = 60_000;
@@ -37,7 +35,7 @@ interface AuthenticatedUpgradeRequest extends IncomingMessage {
 }
 
 export function attachWebSocketServer(httpServer: HttpServer): any {
-  const wss = new WebSocketServer({
+  const wss = new wsLib.Server({
     noServer: true,
     maxPayload: 1024 * 1024,
   });
