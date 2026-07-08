@@ -10,7 +10,7 @@ import { enableSync, disableSync } from '../../lib/sync/index';
 import { isIdentityLinked } from '../../lib/sync/identity';
 import { kv } from '../../lib/storage';
 import { purgeVault } from '../../lib/crypto/vault-keychain';
-import { purgeDatabase } from '../../lib/db';
+import { purgeV2Database as purgeDatabase } from '../../lib/db/database-v2';
 import { hapticTouch, hapticSuccess, hapticWarning } from '../../lib/haptics';
 import { exportVault } from '../../lib/vault-export';
 import { rotateKeys } from '../../lib/key-rotation';

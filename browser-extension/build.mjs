@@ -19,6 +19,9 @@ const entryPoints = {
   'popup/popup': 'popup/popup.ts',
 };
 
+import dotenv from 'dotenv';
+dotenv.config({ path: resolve(__dirname, '../.env') });
+
 const ctx = await esbuild.context({
   entryPoints,
   outdir: distDir,
@@ -32,6 +35,9 @@ const ctx = await esbuild.context({
   alias: { buffer: 'buffer/' },
   define: {
     'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production'),
+    'process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''),
+    'process.env.EXPO_PUBLIC_API_URL': JSON.stringify(process.env.EXPO_PUBLIC_API_URL || ''),
+    'process.env.EXPO_PUBLIC_ZEROVAULT_API_URL': JSON.stringify(process.env.EXPO_PUBLIC_ZEROVAULT_API_URL || ''),
   },
 });
 

@@ -17,7 +17,7 @@ export type VaultItemType2 = VaultItemType;
 
 export interface DecryptedVaultItem {
   id: string;
-  itemType: 'password' | 'seed' | 'note';
+  itemType: 'password' | 'seed' | 'seed_phrase' | 'note';
   title: string;
   folder: string | null;
   payload: Record<string, unknown>;

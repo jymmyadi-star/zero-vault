@@ -298,7 +298,7 @@ export async function executeImport(
         }
       }
 
-      await createVaultItem(item.itemType, item.title || 'Imported Item', payload, {
+      await createVaultItem(item.itemType, item.title || 'Imported Item', payload as any, {
         folder: item.folder || undefined,
         urlHint: item.url || undefined,
       });

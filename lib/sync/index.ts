@@ -67,31 +67,17 @@ export async function enableSync(): Promise<boolean> {
 
     // ENQUEUE ALL EXISTING ITEMS FOR INITIAL SYNC
     try {
-      const { getDatabase } = require('../db');
-      const { decryptVaultItem } = require('../services/vault-service');
+      const { getV2VaultItems } = require('../services/vault-service-v2');
       const { enqueueToBacklog } = require('./push');
       
-      const db = getDatabase();
-      const items = await db.get('vault_items').query().fetch();
-      for (const item of items) {
-        if (item.isPendingDelete || item._raw?.is_pending_delete) continue;
-        const raw = item._raw || {};
-        const decrypted = await decryptVaultItem({
-           id: item.id,
-           itemType: item.itemType ?? raw.item_type,
-           title: item.title ?? raw.title,
-           folder: item.folder ?? raw.folder ?? null,
-           payloadCiphertext: item.payloadCiphertext ?? raw.payload_ciphertext,
-           favorite: item.favorite ?? raw.favorite ?? false,
-           icon: item.icon ?? raw.icon ?? null,
-           urlHint: item.urlHint ?? raw.url_hint ?? null,
-           lastUsedAt: item.lastUsedAt ?? raw.last_used_at ?? null,
-           createdAt: item.createdAt ?? raw.created_at ?? 0,
-           updatedAt: item.updatedAt ?? raw.updated_at ?? 0,
-        });
-        
-        if (decrypted) {
-           await enqueueToBacklog(item.id, 'vaultItem', 'INSERT', {
+      const cipherKey = useVaultStore.getState().cipherKey;
+      if (cipherKey) {
+        const keyCopy = cipherKey.copy();
+        const decryptedItems = await getV2VaultItems(keyCopy);
+        keyCopy.fill(0);
+
+        for (const decrypted of decryptedItems) {
+           await enqueueToBacklog(decrypted.id, 'vaultItem', 'INSERT', {
              id: decrypted.id,
              itemType: decrypted.itemType,
              title: decrypted.title,

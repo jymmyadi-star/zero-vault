@@ -271,9 +271,12 @@ class AutofillOverlay {
     this.isDropdownOpen = true;
 
     try {
+      const url = window.location.href;
+      const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(url));
+      const urlHash = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
       const res = await chrome.runtime.sendMessage({
         type: 'AUTOFILL_QUERY',
-        data: { url: window.location.href },
+        data: { url: window.location.href, urlHash },
       });
 
       if (res?.locked) {

@@ -333,7 +333,7 @@ async function decryptItemsForUI(): Promise<DecryptedVaultItem[]> {
   }
 }
 
-async function queryAutofill(url: string): Promise<Array<{ id: string; title: string; username: string; password: string; urlHint: string }>> {
+async function queryAutofill(url: string, urlHash?: string): Promise<Array<{ id: string; title: string; username: string; password: string; urlHint: string }>> {
   if (!state.cipherKey || state.cipherKey.disposed) return [];
 
   try {
@@ -407,7 +407,6 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
         const ok = await setupWithMnemonic(msg.data.mnemonic, msg.data.password);
         if (ok) {
           syncVault().catch(() => {});
-          connectWebSocket().catch(() => {});
         }
         return { success: ok };
       } catch (e: any) {
@@ -419,7 +418,6 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
         const ok = await unlockWithPassword(msg.data.password);
         if (ok) {
           syncVault().catch(() => {});
-          connectWebSocket().catch(() => {});
         }
         return { success: ok };
       } catch (e: any) {
@@ -449,7 +447,7 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
 
     case 'AUTOFILL_QUERY': {
       if (!state.cipherKey || state.cipherKey.disposed) return { matches: [] };
-      const matches = await queryAutofill(msg.data?.url || '');
+      const matches = await queryAutofill(msg.data?.url || '', msg.data?.urlHash);
       return { matches };
     }
 
@@ -469,58 +467,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-let ws: WebSocket | null = null;
-let wsReconnectTimer: any = null;
-
-async function connectWebSocket() {
-  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
-
-  const { getApiUrl, getToken } = await import('../lib/api');
-  const token = getToken();
-  if (!token) return;
-
-  try {
-    const baseUrl = await getApiUrl();
-    const wsUrl = baseUrl.replace(/^http/, 'ws') + '/ws?token=' + token;
-    
-    ws = new WebSocket(wsUrl);
-    
-    ws.onopen = () => {
-      console.log('[Sync] WebSocket connected for real-time push');
-      // Trigger an immediate sync when connection is established just in case
-      if (state.cipherKey && !state.cipherKey.disposed) {
-        syncVault().catch(() => {});
-      }
-    };
-    
-    ws.onmessage = (event) => {
-      try {
-        const msg = JSON.parse(event.data);
-        if (msg.type === 'sync:available') {
-          console.log('[Sync] Received sync:available push event');
-          if (state.cipherKey && !state.cipherKey.disposed) {
-            syncVault().catch(() => {});
-          }
-        }
-      } catch (e) {
-        console.error('[Sync] WebSocket message parsing failed', e);
-      }
-    };
-    
-    ws.onclose = () => {
-      ws = null;
-      // Reconnect with backoff
-      clearTimeout(wsReconnectTimer);
-      wsReconnectTimer = setTimeout(connectWebSocket, 5000);
-    };
-    
-    ws.onerror = () => {
-      // ws.onclose will handle the reconnect
-    };
-  } catch (e) {
-    console.error('[Sync] WebSocket connection setup failed', e);
-  }
-}
+// Legacy WebSocket functionality removed for Supabase Edge compatibility
 
 chrome.runtime.onInstalled.addListener(() => {
   lockVault();

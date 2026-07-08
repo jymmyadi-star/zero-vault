@@ -29,7 +29,8 @@ export async function initializeV2Database(vaultKeyHex: string): Promise<V2Datab
 async function ensureV2Tables(): Promise<void> {
   if (!db) return;
   try {
-    await db.run(sql.raw(`
+    const sqlite = openDatabaseSync(DB_NAME);
+    await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS vault_items (
         id TEXT PRIMARY KEY,
         item_type TEXT NOT NULL,
@@ -87,7 +88,7 @@ async function ensureV2Tables(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_v2_backlog_record_id ON sync_backlog (record_id);
       CREATE INDEX IF NOT EXISTS idx_v2_backlog_verified ON sync_backlog (verified);
       CREATE INDEX IF NOT EXISTS idx_v2_meta_key ON sync_meta (key);
-    `));
+    `);
     Logger.info('[Database V2] Tables and indexes ensured', { module: 'DatabaseV2' });
   } catch (e: any) {
     Logger.error('[Database V2] Failed to ensure tables', e, { module: 'DatabaseV2' });

@@ -43,7 +43,7 @@ describe('OWASP MSTG-STORAGE-1: Data at Rest Encryption', () => {
   it('never writes plaintext payloads to the database', async () => {
     const sensitivePayload = { username: 'testuser', password: 'SuperSecretPassword123!' };
     
-    await createVaultItem('password', 'My Bank', sensitivePayload);
+    await createVaultItem('password', 'My Bank', sensitivePayload as any);
 
     expect(mockCreate).toHaveBeenCalledTimes(1);
     const dbRecord = mockCreate.mock.calls[0]?.[0];

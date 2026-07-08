@@ -1,8 +1,10 @@
-import { getDatabase } from '../db';
+import { getV2Database, type V2Database } from '../db/database-v2';
+import { vaultItems, syncMeta, conflicts } from '../db/schema-v2';
+import { eq } from 'drizzle-orm';
 import { useVaultStore } from '../store/vault-store';
 import { Logger } from '../logger';
 import { verifyHashChain } from './hash-chain';
-import { readStoredHash, writeStoredHash, sealVerifiedHash, unsealVerifiedHash } from './verified-hash';
+import { readStoredHash, writeStoredHash, sealVerifiedHash, unsealVerifiedHash } from './verified-hash-v2';
 import {
   unwrapKey,
   decryptPayload,
@@ -49,14 +51,14 @@ async function doPullChanges(): Promise<void> {
     useVaultStore.getState().setSyncStatus('syncing');
 
     const PAGE_SIZE = 200;
-    const db = getDatabase();
+    const db = getV2Database();
     let lastId = 0;
     let totalLogsProcessed = 0;
     let totalMerged = 0;
 
     try {
-      const meta = await db.get('sync_meta').find('last_acked_seq');
-      lastId = Number((meta as any).value) || 0;
+      const rows = await db.select().from(syncMeta).where(eq(syncMeta.key, 'last_acked_seq'));
+      lastId = rows[0] ? Number(rows[0].value) || 0 : 0;
     } catch {
       lastId = 0;
     }
@@ -99,9 +101,7 @@ async function doPullChanges(): Promise<void> {
             lastVerifiedHash = payloadData.chain?.signature ?? null;
             if (lastVerifiedHash) {
               const signKeyCopy = signKey.copy();
-              await db.write(async () => {
-                await writeStoredHash(sealVerifiedHash(lastVerifiedHash!, signKeyCopy));
-              });
+              await writeStoredHash(sealVerifiedHash(lastVerifiedHash!, signKeyCopy));
               signKeyCopy.fill(0);
             }
 
@@ -130,18 +130,14 @@ async function doPullChanges(): Promise<void> {
         }
       }
 
-      await db.write(async () => {
-        try {
-          const meta = await db.get('sync_meta').find('last_acked_seq');
-          await meta.update((m: any) => { m.value = currentSinceId.toString(); });
-        } catch {
-          await db.get('sync_meta').create((m: any) => {
-            m._raw.id = 'last_acked_seq';
-            m.key = 'last_acked_seq';
-            m.value = currentSinceId.toString();
-          });
+      try {
+        const existing = await db.select().from(syncMeta).where(eq(syncMeta.key, 'last_acked_seq'));
+        if (existing.length > 0) {
+          await db.update(syncMeta).set({ value: currentSinceId.toString() }).where(eq(syncMeta.key, 'last_acked_seq'));
+        } else {
+          await db.insert(syncMeta).values({ id: 'last_acked_seq', key: 'last_acked_seq', value: currentSinceId.toString() });
         }
-      });
+      } catch {}
 
       if (!result.hasMore) break;
     }
@@ -204,87 +200,74 @@ async function mergeRemoteChange(
 
     if (!plaintext || !plaintext.id) return false;
 
-    const db = getDatabase();
+    const db = getV2Database();
     const operation: SyncOperation = (log.operation as SyncOperation) || 'INSERT';
+    const id = plaintext!.id as string;
 
-    await db.write(async () => {
-      const modelCollection = db.get(collection);
+    // Query existing item
+    const existingArray = await db.select().from(vaultItems).where(eq(vaultItems.id, id));
+    const existing = existingArray[0];
 
-      try {
-        const existing = await modelCollection.find(plaintext!.id as string);
+    if (operation === 'DELETE') {
+      await db.update(vaultItems).set({ isPendingDelete: true, updatedAt: Date.now() }).where(eq(vaultItems.id, id));
+      return true;
+    }
 
-        if (operation === 'DELETE') {
-          await existing.markAsDeleted();
-        } else {
-          // Conflict detection: if local revision differs from incoming, record the conflict
-          const localRevision = (existing as any).revision || (existing as any)._raw?.revision;
-          const incomingRevision = log.new_revision || log.id.toString();
-          const hasConflict = localRevision && incomingRevision && localRevision !== incomingRevision;
+    // Conflict detection
+    const localRevision = existing?.revision;
+    const incomingRevision = log.new_revision || log.id.toString();
+    const hasConflict = localRevision && incomingRevision && localRevision !== incomingRevision;
 
-          if (hasConflict) {
-            // Write to _conflicts table so the user can resolve it later
-            try {
-              await db.get('_conflicts').create((m: any) => {
-                m._raw.id = `conflict-${log.entity_id}-${Date.now()}`;
-                m.entityId = log.entity_id;
-                m.entityType = log.entity_type;
-                m.serverData = JSON.stringify(plaintext);
-                m.serverRevision = incomingRevision;
-                m.localData = JSON.stringify((existing as any)._raw || {});
-                m.localRevision = localRevision;
-                m.conflictReason = 'revision_mismatch';
-                m.createdAt = Date.now();
-              });
-            } catch {
-              // _conflicts write failure is non-fatal
-            }
-          } else {
-            const updates: Record<string, unknown> = {};
-            for (const [key, value] of Object.entries(plaintext!)) {
-              if (key !== 'id' && key !== '_meta') {
-                updates[key] = value;
-              }
-            }
+    if (existing && hasConflict) {
+      await db.insert(conflicts).values({
+        id: `conflict-${log.entity_id}-${Date.now()}`,
+        entityId: log.entity_id,
+        entityType: log.entity_type,
+        serverData: JSON.stringify(plaintext),
+        serverRevision: incomingRevision,
+        localData: JSON.stringify(existing),
+        localRevision: localRevision!,
+        conflictReason: 'revision_mismatch',
+        createdAt: Date.now(),
+        isPendingDelete: false,
+      });
+      return true;
+    }
 
-            if (updates.payload && typeof updates.payload === 'object') {
-              const envelope = encryptPayload(updates.payload as Record<string, unknown>, cipherKey);
-              updates.payloadCiphertext = JSON.stringify(envelope);
-              delete updates.payload;
-            }
-
-            await existing.update((m: any) => {
-              for (const [key, value] of Object.entries(updates)) {
-                try { m[key] = value; } catch {}
-              }
-              m.updatedAt = Date.now();
-            });
-          }
-        }
-      } catch {
-        if (operation !== 'DELETE') {
-          const newEnvelope = encryptPayload(
-            (plaintext!.payload as Record<string, unknown>) || plaintext!,
-            cipherKey,
-          );
-
-          await modelCollection.create((m: any) => {
-            m._raw.id = plaintext!.id;
-            m.itemType = plaintext!.itemType || 'note';
-            m.title = plaintext!.title || 'Untitled';
-            m.payloadCiphertext = JSON.stringify(newEnvelope);
-            m.folder = plaintext!.folder || null;
-            m.icon = plaintext!.icon || null;
-            m.urlHint = plaintext!.urlHint || null;
-            m.favorite = plaintext!.favorite || false;
-            m.lastUsedAt = plaintext!.lastUsedAt || null;
-            m.createdAt = plaintext!.createdAt || Date.now();
-            m.updatedAt = Date.now();
-            m.revision = log.new_revision || log.id.toString();
-            m.isPendingDelete = false;
-          });
-        }
+    if (existing) {
+      // UPDATE existing item
+      const updates: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(plaintext!)) {
+        if (key !== 'id' && key !== '_meta') updates[key] = value;
       }
-    });
+      if (updates.payload && typeof updates.payload === 'object') {
+        const envelope = encryptPayload(updates.payload as Record<string, unknown>, cipherKey);
+        updates.payloadCiphertext = JSON.stringify(envelope);
+        delete updates.payload;
+      }
+      await db.update(vaultItems).set({ ...updates as any, updatedAt: Date.now() }).where(eq(vaultItems.id, id));
+    } else {
+      // INSERT new item
+      const newEnvelope = encryptPayload(
+        (plaintext!.payload as Record<string, unknown>) || plaintext!,
+        cipherKey,
+      );
+      await db.insert(vaultItems).values({
+        id,
+        itemType: (plaintext!.itemType as string) || 'note',
+        title: (plaintext!.title as string) || 'Untitled',
+        payloadCiphertext: JSON.stringify(newEnvelope),
+        folder: (plaintext!.folder as string) || null,
+        icon: (plaintext!.icon as string) || null,
+        urlHint: (plaintext!.urlHint as string) || null,
+        favorite: (plaintext!.favorite as boolean) || false,
+        lastUsedAt: (plaintext!.lastUsedAt as number) || null,
+        createdAt: (plaintext!.createdAt as number) || Date.now(),
+        updatedAt: Date.now(),
+        revision: log.new_revision || log.id.toString(),
+        isPendingDelete: false,
+      });
+    }
 
     return true;
   } catch (err: any) {
@@ -295,15 +278,13 @@ async function mergeRemoteChange(
 
 export const SyncPull = { pullChanges };
 
-async function cleanupOldConflicts(db: any): Promise<void> {
-  const CONFLICT_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-  const cutoff = Date.now() - CONFLICT_RETENTION_MS;
+async function cleanupOldConflicts(db: V2Database): Promise<void> {
+  const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
   try {
-    const oldConflicts = await db.get('_conflicts').query().fetch();
+    const oldConflicts = await db.select().from(conflicts).where(eq(conflicts.isPendingDelete, false));
     for (const c of oldConflicts) {
-      const createdAt = c.createdAt || c._raw?.created_at || 0;
-      if (createdAt < cutoff) {
-        try { await c.markAsDeleted(); } catch {}
+      if (c.createdAt < cutoff) {
+        await db.update(conflicts).set({ isPendingDelete: true }).where(eq(conflicts.id, c.id));
       }
     }
   } catch {}

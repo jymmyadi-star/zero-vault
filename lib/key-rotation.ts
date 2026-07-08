@@ -29,7 +29,9 @@ import {
   type EncryptedEnvelope,
 } from './crypto/crypto-utils';
 import { SecureBuffer } from './crypto/secure-buffer';
-import { getDatabase } from './db';
+import { getV2Database } from './db/database-v2';
+import { vaultItems } from './db/schema-v2';
+import { eq } from 'drizzle-orm';
 import { useVaultStore } from './store/vault-store';
 import { Logger } from './logger';
 
@@ -93,35 +95,27 @@ export async function rotateKeys(
   wrappingKey.dispose();
 
   // 5. Decrypt all vault items with old key, then re-encrypt with new key (in memory)
-  const db = getDatabase();
-  const records = await db.get('vault_items').query().fetch();
-  const activeRecords = records.filter((r: any) => !(r.isPendingDelete || r._raw?.is_pending_delete));
-  const total = activeRecords.length;
+  const db = getV2Database();
+  const records = await db.select().from(vaultItems).where(eq(vaultItems.isPendingDelete, false));
+  const total = records.length;
 
-  // Collect all re-encrypted payloads before touching the DB
-  const reEncrypted: Array<{ record: any; newPayloadCiphertext: string }> = [];
+  const reEncrypted: Array<{ id: string; newPayloadCiphertext: string }> = [];
 
-  for (const record of activeRecords) {
-    const raw = (record as any)._raw || {};
-    const ciphertextStr = (record as any).payloadCiphertext || raw.payload_ciphertext;
+  for (const record of records) {
+    const ciphertextStr = record.payloadCiphertext;
     if (!ciphertextStr) continue;
 
     const envelope: EncryptedEnvelope = JSON.parse(ciphertextStr);
     const plaintext = decryptPayload(envelope, oldCipherKey);
     const newEnvelope = encryptPayload(plaintext, newCipherKeyRaw);
 
-    reEncrypted.push({ record, newPayloadCiphertext: JSON.stringify(newEnvelope) });
+    reEncrypted.push({ id: record.id, newPayloadCiphertext: JSON.stringify(newEnvelope) });
   }
 
   // 6. Single atomic DB transaction — all-or-nothing
-  await db.write(async () => {
-    for (const { record, newPayloadCiphertext } of reEncrypted) {
-      await record.update((m: any) => {
-        m.payloadCiphertext = newPayloadCiphertext;
-        m.updatedAt = Date.now();
-      });
-    }
-  });
+  for (const { id, newPayloadCiphertext } of reEncrypted) {
+    await db.update(vaultItems).set({ payloadCiphertext: newPayloadCiphertext, updatedAt: Date.now() }).where(eq(vaultItems.id, id));
+  }
 
   const reEncryptedCount = reEncrypted.length;
   for (let i = 0; i < reEncryptedCount; i++) {

@@ -10,8 +10,8 @@
  * The caller is responsible for sharing/saving securely.
  */
 
-import { getDatabase } from './db';
-import { decryptVaultItem } from './services/vault-service';
+import { getV2VaultItems, type V2VaultItem } from './services/vault-service-v2';
+import { useVaultStore } from './store/vault-store';
 import { randomBytes, encryptPayload, type EncryptedEnvelope } from './crypto/crypto-utils';
 
 export interface ExportOptions {
@@ -43,12 +43,12 @@ interface BitwardenItem {
   fields?: Array<{ name: string; value: string; type: number }>;
 }
 
-function tobitwardenItem(item: Awaited<ReturnType<typeof decryptVaultItem>>): BitwardenItem | null {
+function tobitwardenItem(item: V2VaultItem): BitwardenItem | null {
   if (!item) return null;
 
   const payload = item.payload as Record<string, unknown>;
   const isNote = item.itemType === 'note';
-  const isSeed = item.itemType === 'seed_phrase';
+  const isSeed = item.itemType === 'seed' || item.itemType === 'seed_phrase' as any;
 
   const base: BitwardenItem = {
     id: item.id,
@@ -86,7 +86,7 @@ function escapeCSV(val: unknown): string {
   return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
 }
 
-function toCSVRow(item: Awaited<ReturnType<typeof decryptVaultItem>>): string | null {
+function toCSVRow(item: V2VaultItem): string | null {
   if (!item) return null;
   const payload = item.payload as Record<string, unknown>;
   const fields = [
@@ -105,29 +105,12 @@ function toCSVRow(item: Awaited<ReturnType<typeof decryptVaultItem>>): string | 
 // ─── Main export function ───
 
 export async function exportVault(options: ExportOptions): Promise<ExportResult> {
-  const db = getDatabase();
-  const records = await db.get('vault_items').query().fetch();
+  const cipherKey = useVaultStore.getState().cipherKey;
+  if (!cipherKey) throw new Error('Vault is locked. Cannot export data.');
 
-  const decryptedItems = await Promise.all(
-    records
-      .filter((r: any) => !(r.isPendingDelete || r._raw?.is_pending_delete))
-      .map((r: any) => {
-        const raw = {
-          id: r.id,
-          itemType: r.itemType ?? r._raw?.item_type,
-          title: r.title ?? r._raw?.title,
-          folder: r.folder ?? r._raw?.folder ?? null,
-          payloadCiphertext: r.payloadCiphertext ?? r._raw?.payload_ciphertext,
-          favorite: r.favorite ?? r._raw?.favorite ?? false,
-          icon: r.icon ?? r._raw?.icon ?? null,
-          urlHint: r.urlHint ?? r._raw?.url_hint ?? null,
-          lastUsedAt: r.lastUsedAt ?? r._raw?.last_used_at ?? null,
-          createdAt: r.createdAt ?? r._raw?.created_at ?? 0,
-          updatedAt: r.updatedAt ?? r._raw?.updated_at ?? 0,
-        };
-        return decryptVaultItem(raw);
-      }),
-  );
+  const cipherKeyCopy = cipherKey.copy();
+  const decryptedItems = await getV2VaultItems(cipherKeyCopy);
+  cipherKeyCopy.fill(0);
 
   const items = decryptedItems.filter(Boolean);
 

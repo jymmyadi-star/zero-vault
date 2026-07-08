@@ -1,6 +1,7 @@
 import type { SyncLogEntry, PushChange, VaultSeedData } from './types';
 
 let API_URL = 'https://ipmlypfufuntffgttldl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwbWx5cGZ1ZnVudGZmZ3R0bGRsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMzg4NjEsImV4cCI6MjA5NDkxNDg2MX0.r0ug5lnMbMYRrBVWZM--PtERyTVcrwUBV5CxDo_54Sw';
 let isApiUrlLoaded = false;
 
 // Ambient declaration for build-time `process.env` injection (esbuild `define`)
@@ -8,10 +9,8 @@ declare const process: { env: Record<string, string | undefined> } | undefined;
 
 // Async initialize API_URL for production (from build var or chrome storage)
 export async function getApiUrl(): Promise<string> {
-  // 1. Build-time injection (highest priority)
   if (typeof process !== 'undefined' && process?.env) {
-    if (process.env.EXPO_PUBLIC_ZEROVAULT_API_URL) return process.env.EXPO_PUBLIC_ZEROVAULT_API_URL;
-    if (process.env.EXPO_PUBLIC_API_URL) return process.env.EXPO_PUBLIC_API_URL;
+    if (process.env.EXPO_PUBLIC_SUPABASE_URL) return process.env.EXPO_PUBLIC_SUPABASE_URL;
   }
   
   if (isApiUrlLoaded) return API_URL;
@@ -73,7 +72,12 @@ async function apiFetch<T>(
   }
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else if (typeof process !== 'undefined' && process?.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+    headers['Authorization'] = `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`;
+  }
 
   const res = await fetch(url, {
     method: options.method || 'GET',
@@ -97,9 +101,15 @@ export const api = {
 
   async signIn(email: string, password: string): Promise<{ accessToken: string }> {
     const baseUrl = await getApiUrl();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    
+    if (typeof process !== 'undefined' && process?.env?.EXPO_PUBLIC_SUPABASE_ANON_KEY) {
+      headers['Authorization'] = `Bearer ${process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY}`;
+    }
+
     const res = await fetch(`${baseUrl}/functions/v1/auth-signin`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
       body: JSON.stringify({ email, password }),
     });
     if (!res.ok) {

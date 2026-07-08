@@ -30,18 +30,5 @@
         <data android:scheme="exp+zero-vault"/>
       </intent-filter>
     </activity>
-    <service
-      android:name=".VaultAutofillService"
-      android:exported="true"
-      android:permission="android.permission.BIND_AUTOFILL_SERVICE"
-      android:label="Zero Vault Autofill">
-      <intent-filter>
-        <action android:name="android.service.autofill.AutofillService" />
-        <category android:name="android.intent.category.DEFAULT" />
-      </intent-filter>
-      <meta-data
-        android:name="android.autofill"
-        android:resource="@xml/autofill_service" />
-    </service>
   </application>
 </manifest>

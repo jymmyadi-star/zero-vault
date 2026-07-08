@@ -2,8 +2,7 @@ import { Logger } from '../logger';
 import { supabase } from '../supabase';
 
 const API_URL = (() => {
-  const url = (process.env as any).EXPO_PUBLIC_ZEROVAULT_API_URL
-    || process.env.ZEROVAULT_API_URL
+  const url = (process.env as any).EXPO_PUBLIC_SUPABASE_URL
     || 'https://ipmlypfufuntffgttldl.supabase.co';
   return url;
 })();
@@ -88,9 +87,13 @@ async function apiFetch<T>(
     url += `?${params}`;
   }
 
+  const supabaseUrl = (process.env as any).EXPO_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey = (process.env as any).EXPO_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${token}`,
+    apikey: supabaseKey || '',
   };
 
   const response = await fetch(url, {

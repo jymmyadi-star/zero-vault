@@ -22,6 +22,7 @@ export default {
     },
     android: {
       adaptiveIcon: {
+        foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#09090b",
       },
       package: "com.zerovault.app",
@@ -30,7 +31,6 @@ export default {
       "expo-router",
       "expo-secure-store",
       "expo-local-authentication",
-      "@morrowdigital/watermelondb-expo-plugin",
       ["expo-build-properties", { "android": { "newArchEnabled": false } }],
       [
         "expo-splash-screen",

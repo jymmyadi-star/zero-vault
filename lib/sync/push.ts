@@ -1,7 +1,9 @@
-import { getDatabase } from '../db';
+import { getV2Database } from '../db/database-v2';
+import { syncBacklog } from '../db/schema-v2';
+import { eq, asc, and } from 'drizzle-orm';
 import { useVaultStore } from '../store/vault-store';
 import { Logger } from '../logger';
-import { readStoredHash, writeStoredHash, sealVerifiedHash, unsealVerifiedHash } from './verified-hash';
+import { readStoredHash, writeStoredHash, sealVerifiedHash, unsealVerifiedHash } from './verified-hash-v2';
 import { verifyHashChain } from './hash-chain';
 import {
   computeSyncSignature, wrapKey, encryptPayload, deriveSignKey,
@@ -114,11 +116,8 @@ export async function pushChangeViaApi(
       const chainData = JSON.parse(payloadCiphertext);
       const signature = chainData?.chain?.signature;
       if (signature && signKey) {
-        const db = getDatabase();
         const signKeyCopy = signKey.copy();
-        await db.write(async () => {
-          await writeStoredHash(sealVerifiedHash(signature, signKeyCopy));
-        });
+        await writeStoredHash(sealVerifiedHash(signature, signKeyCopy));
         signKeyCopy.fill(0);
       }
     }
@@ -143,71 +142,38 @@ export async function enqueueToBacklog(
   const signKeyCopy = signKey.copy();
   try {
     const payloadCiphertext = await buildSyncPayload(entityId, operation as any, plaintextPayload);
-    const db = getDatabase();
+    const db = getV2Database();
 
-    const existing = await db.get('sync_backlog').query().fetch();
-    let maxSeq = 0;
-    for (const item of existing) {
-      const seq = (item as any).sequence || (item as any)._raw?.sequence || 0;
-      if (seq > maxSeq) maxSeq = seq;
-    }
+    const existing = await db.select({ sequence: syncBacklog.sequence }).from(syncBacklog);
+    let maxSeq = existing.reduce((m, e) => Math.max(m, e.sequence), 0);
 
     if (existing.length >= MAX_BACKLOG_SIZE) {
       Logger.warn('[Sync] Backlog at capacity — compacting old entries', {
-        module: 'SyncEngine',
-        currentSize: existing.length,
-        maxSize: MAX_BACKLOG_SIZE,
+        module: 'SyncEngine', currentSize: existing.length, maxSize: MAX_BACKLOG_SIZE,
       });
-
-      const oldestByRecord = new Map<string, any[]>();
-      for (const item of existing) {
-        const rid = (item as any).recordId || (item as any)._raw?.record_id || '';
-        if (!oldestByRecord.has(rid)) oldestByRecord.set(rid, []);
-        oldestByRecord.get(rid)!.push(item);
-      }
-
+      const all = await db.select().from(syncBacklog).orderBy(asc(syncBacklog.sequence));
+      const latest = new Map<string, typeof all[0]>();
+      for (const item of all) { latest.set(item.recordId, item); }
       let removed = 0;
-      for (const [rid, items] of oldestByRecord) {
-        if (items.length <= 1) continue;
-        items.sort((a: any, b: any) => ((a as any).sequence || 0) - ((b as any).sequence || 0));
-        for (let i = 0; i < items.length - 1; i++) {
-          try {
-            await db.write(async () => {
-              const record = await db.get('sync_backlog').find(items[i].id);
-              await record.markAsDeleted();
-            });
-            removed++;
-          } catch {}
+      for (const item of all) {
+        if (latest.get(item.recordId)?.id !== item.id) {
+          await db.delete(syncBacklog).where(eq(syncBacklog.id, item.id));
+          removed++;
         }
-        if (existing.length - removed < MAX_BACKLOG_SIZE * 0.8) break;
       }
-
-      Logger.info('[Sync] Backlog compaction complete', {
-        module: 'SyncEngine',
-        removed,
-        remaining: existing.length - removed,
-      });
+      Logger.info('[Sync] Backlog compaction complete', { module: 'SyncEngine', removed, remaining: all.length - removed });
     }
 
     const keyEpochId = await getCurrentKeyEpoch();
 
-    await db.write(async () => {
-      await db.get('sync_backlog').create((m: any) => {
-        m._raw.id = `bl-${entityId}-${Date.now()}`;
-        m.logId = `log-${entityId}`;
-        m.sequence = maxSeq + 1;
-        m.tableName = entityType;
-        m.recordId = entityId;
-        m.operation = operation;
-        m.payloadCiphertext = payloadCiphertext;
-        m.newRevision = '';
-        m.keyEpochId = keyEpochId;
-        m.verified = false;
-        m.createdAt = Date.now();
-      });
+    await db.insert(syncBacklog).values({
+      id: `bl-${entityId}-${Date.now()}`, logId: `log-${entityId}`,
+      sequence: maxSeq + 1, tableName: entityType, recordId: entityId,
+      operation, payloadCiphertext, newRevision: '',
+      keyEpochId, verified: false, createdAt: Date.now(),
     });
   } catch (err: any) {
-    Logger.error('[Sync] Failed to enqueue to backlog', { module: 'SyncEngine', error: err.message });
+    Logger.error('[Sync] Failed to enqueue to backlog', err, { module: 'SyncEngine' });
   } finally {
     signKeyCopy.fill(0);
   }
@@ -239,11 +205,11 @@ async function doDrainBacklog(): Promise<void> {
   const signKeyBuf = signKey?.copy();
   if (!signKeyBuf) return;
 
-  const db = getDatabase();
+  const db = getV2Database();
   let backlogItems: any[];
 
   try {
-    backlogItems = await db.get('sync_backlog').query().fetch();
+    backlogItems = await db.select().from(syncBacklog).orderBy(asc(syncBacklog.sequence)).limit(20);
   } catch {
     signKeyBuf.fill(0);
     return;
@@ -262,23 +228,16 @@ async function doDrainBacklog(): Promise<void> {
   const keyEpochId = await getCurrentKeyEpoch();
 
   for (const item of batch) {
-    const retryCount = (item as any).retryCount || (item as any)._raw?.retry_count || 0;
+    const retryCount = item.retryCount ?? 0;
     if (retryCount >= MAX_RETRY_COUNT) {
       Logger.warn('[Sync] Backlog item exceeded max retries — discarding', {
-        module: 'SyncEngine',
-        recordId: item.recordId || item._raw?.record_id,
-        retryCount,
+        module: 'SyncEngine', recordId: item.recordId, retryCount,
       });
-      await db.write(async () => {
-        try {
-          const record = await db.get('sync_backlog').find(item.id);
-          await record.markAsDeleted();
-        } catch {}
-      });
+      await db.delete(syncBacklog).where(eq(syncBacklog.id, item.id));
       continue;
     }
 
-    const payloadCiphertext = item.payloadCiphertext || item._raw?.payload_ciphertext;
+    const payloadCiphertext = item.payloadCiphertext;
     if (!payloadCiphertext) continue;
 
     const storedHash = await readStoredHash();
@@ -288,56 +247,30 @@ async function doDrainBacklog(): Promise<void> {
       Logger.warn('[Sync] Backlog item chain rebuild failed — flagging for retry', {
         module: 'SyncEngine', recordId: item.recordId,
       });
-      await db.write(async () => {
-        try {
-          const record = await db.get('sync_backlog').find(item.id);
-          const currentRetry = (record as any).retryCount || (record as any)._raw?.retry_count || 0;
-          await record.update((m: any) => {
-            m.retryCount = currentRetry + 1;
-            m.errorReason = 'chain_rebuild_failed';
-          });
-        } catch {}
-      });
+      await db.update(syncBacklog).set({ retryCount: retryCount + 1, errorReason: 'chain_rebuild_failed' }).where(eq(syncBacklog.id, item.id));
       continue;
     }
 
     try {
       const result = await apiClient.push([{
-        entityId: item.recordId || item._raw?.record_id,
+        entityId: item.recordId,
         entityType: 'vaultItem' as const,
-        operation: (item.operation || item._raw?.operation || 'INSERT') as 'INSERT' | 'UPDATE' | 'DELETE',
+        operation: item.operation as 'INSERT' | 'UPDATE' | 'DELETE',
         payloadCiphertext: rebuilt,
         newRevision: null,
         keyEpochId,
-        hlc: item.hlc || item._raw?.hlc || new Date().toISOString(),
+        hlc: item.hlc || new Date().toISOString(),
       }]);
 
       if (result.accepted > 0) {
         const chainData = JSON.parse(rebuilt);
         const signature = chainData?.chain?.signature;
         if (signature) {
-          await db.write(async () => {
-            await writeStoredHash(sealVerifiedHash(signature, signKeyBuf));
-          });
+          await writeStoredHash(sealVerifiedHash(signature, signKeyBuf));
         }
-
-        await db.write(async () => {
-          try {
-            const record = await db.get('sync_backlog').find(item.id);
-            await record.markAsDeleted();
-          } catch {}
-        });
+        await db.delete(syncBacklog).where(eq(syncBacklog.id, item.id));
       } else {
-        await db.write(async () => {
-          try {
-            const record = await db.get('sync_backlog').find(item.id);
-            const currentRetry = (record as any).retryCount || (record as any)._raw?.retry_count || 0;
-            await record.update((m: any) => {
-              m.retryCount = currentRetry + 1;
-              m.errorReason = 'Server rejected';
-            });
-          } catch {}
-        });
+        await db.update(syncBacklog).set({ retryCount: (item.retryCount ?? 0) + 1, errorReason: 'Server rejected' }).where(eq(syncBacklog.id, item.id));
       }
     } catch (err: any) {
       Logger.warn('[Sync] Backlog item drain failed', {
@@ -361,16 +294,7 @@ async function doDrainBacklog(): Promise<void> {
         }
       }
 
-      await db.write(async () => {
-        try {
-          const record = await db.get('sync_backlog').find(item.id);
-          const currentRetry = (record as any).retryCount || (record as any)._raw?.retry_count || 0;
-          await record.update((m: any) => {
-            m.retryCount = currentRetry + 1;
-            m.errorReason = err.message;
-          });
-        } catch {}
-      });
+      await db.update(syncBacklog).set({ retryCount: (item.retryCount ?? 0) + 1, errorReason: err.message }).where(eq(syncBacklog.id, item.id));
     }
   }
 
