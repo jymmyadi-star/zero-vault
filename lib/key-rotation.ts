@@ -1,5 +1,5 @@
 /**
- * key-rotation.ts — Cryptographic key rotation for Zero Vault
+ * key-rotation.ts — Cryptographic key rotation for Socler
  *
  * When a user suspects their SignKey or CipherKey may be compromised,
  * they can rotate keys. This:
@@ -36,15 +36,15 @@ import { useVaultStore } from './store/vault-store';
 import { Logger } from './logger';
 
 const SECURESTORE_KEYS = {
-  DEVICE_SALT: 'zerovault_device_salt',
-  WRAPPED_VAULT_KEY: 'zerovault_wrapped_vault_key',
-  WRAPPED_CIPHER_KEY: 'zerovault_wrapped_cipher_key',
-  WRAPPED_SIGN_KEY: 'zerovault_wrapped_sign_key',
-  KEY_EPOCH: 'zerovault_key_epoch',
+  DEVICE_SALT: 'socler_device_salt_v3',
+  WRAPPED_VAULT_KEY: 'socler_wrapped_vault_key_v3',
+  WRAPPED_CIPHER_KEY: 'socler_wrapped_cipher_key_v3',
+  WRAPPED_SIGN_KEY: 'socler_wrapped_sign_key_v3',
+  KEY_EPOCH: 'socler_key_epoch_v3',
 } as const;
 
 function deriveWrapKey(masterKey: Uint8Array): SecureBuffer {
-  const info = new TextEncoder().encode('zerovault-wrap-v1');
+  const info = new TextEncoder().encode('socler-wrap-v1');
   const raw = hkdf(sha256, masterKey, new Uint8Array(0), info, 32);
   return SecureBuffer.from(raw);
 }

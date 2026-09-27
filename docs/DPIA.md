@@ -1,9 +1,9 @@
 # Data Protection Impact Assessment (DPIA)
-## GDPR Article 35 — Zero Vault
+## GDPR Article 35 — Socler
 
 **Date:** 2026-05-25
-**Controller:** Zero Vault (Romania, EU)
-**DPO:** dpo@zerovault.app
+**Controller:** Socler (Romania, EU)
+**DPO:** dpo@socler.app
 
 ---
 
@@ -17,14 +17,14 @@ Under GDPR Article 35, a DPIA is required when processing is "likely to result i
 | (b) Large-scale special category data (Art. 9) | NOT APPLICABLE (no health data) |
 | (c) Systematic public monitoring | NOT APPLICABLE |
 
-Zero Vault processes passwords, seed phrases, and notes. These are NOT special category data under Art. 9. However, a DPIA is conducted as a best practice given the sensitivity of credential storage and the zero-knowledge architecture.
+Socler processes passwords, seed phrases, and notes. These are NOT special category data under Art. 9. However, a DPIA is conducted as a best practice given the sensitivity of credential storage and the zero-knowledge architecture.
 
 ---
 
 ## 2. Processing Description
 
 ### Nature
-Zero Vault is a zero-knowledge password manager and encrypted vault for storing passwords, blockchain seed phrases, and secure notes.
+Socler is a zero-knowledge password manager and encrypted vault for storing passwords, blockchain seed phrases, and secure notes.
 
 ### Scope
 - **Data subjects:** Individual users
@@ -44,7 +44,7 @@ Zero Vault is a zero-knowledge password manager and encrypted vault for storing 
 3. Anonymous identity management
 
 ### Technical Implementation
-- **Local storage:** WatermelonDB with SQLCipher AES-256
+- **Local storage:** expo-sqlite with SQLCipher AES-256
 - **Encryption:** XChaCha20-Poly1305 per-item, Argon2id PIN derivation (128MB, 6 passes)
 - **Server:** Zero-knowledge (opaque ciphertext blocks only)
 - **Authentication:** PIN-based (8+ digits) with biometric optional
@@ -88,7 +88,7 @@ Zero Vault is a zero-knowledge password manager and encrypted vault for storing 
 - Explicit key zeroing after use
 
 ### Organizational
-- DPO appointed (dpo@zerovault.app)
+- DPO appointed (dpo@socler.app)
 - DPA agreements with processors
 - 72-hour breach notification protocol
 - GDPR Art. 17 erasure (Purge Enclave)
@@ -99,7 +99,7 @@ Zero Vault is a zero-knowledge password manager and encrypted vault for storing 
 
 ## 6. DPO Consultation
 
-The DPO (dpo@zerovault.app) was consulted and has approved the risk mitigation measures.
+The DPO (dpo@socler.app) was consulted and has approved the risk mitigation measures.
 
 ---
 
@@ -129,6 +129,6 @@ Not required (residual risk LOW). Would consult ANSPDCP if residual risk were hi
 
 ## 10. Conclusion
 
-Zero Vault's zero-knowledge architecture provides a fundamentally strong privacy posture. Processing is limited, proportional, and user-controlled. Residual risk is LOW.
+Socler's zero-knowledge architecture provides a fundamentally strong privacy posture. Processing is limited, proportional, and user-controlled. Residual risk is LOW.
 
-**Signed:** Zero Vault DPO | **Date:** May 25, 2026
+**Signed:** Socler DPO | **Date:** May 25, 2026

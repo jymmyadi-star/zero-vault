@@ -26,8 +26,8 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="zerovault"/>
-        <data android:scheme="exp+zero-vault"/>
+        <data android:scheme="socler"/>
+        <data android:scheme="exp+socler"/>
       </intent-filter>
     </activity>
   </application>

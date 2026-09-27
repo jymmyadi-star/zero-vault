@@ -12,7 +12,7 @@ import {
   randomBytes, generateRandomKey, wrapKey, unwrapKey,
   serializeWrappedKey, deserializeWrappedKey,
   computeSyncSignature, bytesToHex, hexToBytes,
-  timingSafeCompare, deriveWithPBKDF2Async, derivePairingId,
+  timingSafeCompare, deriveWithArgon2, derivePairingId,
   type WrappedKey,
 } from './crypto-utils';
 import { SecureBuffer } from './secure-buffer';
@@ -23,24 +23,24 @@ import {
 } from '../result';
 
 const SECURESTORE_KEYS = {
-  DEVICE_SALT: 'zerovault_device_salt_v3',
-  WRAPPED_VAULT_KEY: 'zerovault_wrapped_vault_key_v3',
-  WRAPPED_CIPHER_KEY: 'zerovault_wrapped_cipher_key_v3',
-  WRAPPED_SIGN_KEY: 'zerovault_wrapped_sign_key_v3',
-  PIN_VERIFY_HASH: 'zerovault_pin_verify_hash_v3',
-  PIN_VERIFY_SALT: 'zerovault_pin_verify_salt_v3',
-  PIN_ATTEMPT_COUNT: 'zerovault_pin_attempts_v3',
-  PIN_LAST_ATTEMPT: 'zerovault_pin_last_attempt_v3',
-  HAS_RECOVERY_SEED: 'zerovault_has_recovery_seed_v3',
-  KEY_EPOCH: 'zerovault_key_epoch_v3',
-  PAIRING_ID: 'zerovault_pairing_id_v3',
+  DEVICE_SALT: 'socler_device_salt_v3',
+  WRAPPED_VAULT_KEY: 'socler_wrapped_vault_key_v3',
+  WRAPPED_CIPHER_KEY: 'socler_wrapped_cipher_key_v3',
+  WRAPPED_SIGN_KEY: 'socler_wrapped_sign_key_v3',
+  PIN_VERIFY_HASH: 'socler_pin_verify_hash_v3',
+  PIN_VERIFY_SALT: 'socler_pin_verify_salt_v3',
+  PIN_ATTEMPT_COUNT: 'socler_pin_attempts_v3',
+  PIN_LAST_ATTEMPT: 'socler_pin_last_attempt_v3',
+  HAS_RECOVERY_SEED: 'socler_has_recovery_seed_v3',
+  KEY_EPOCH: 'socler_key_epoch_v3',
+  PAIRING_ID: 'socler_pairing_id_v3',
 } as const;
 
 const MAX_PIN_ATTEMPTS = 5;
 const PIN_BACKOFF_BASE_MS = 2000;
 
 const HKDF_INFO = {
-  WRAP: 'zerovault-wrap-v1',
+  WRAP: 'socler-wrap-v1',
 } as const;
 
 function pinBackoffMs(attempts: number): number {
@@ -78,7 +78,7 @@ function deriveWrapKey(masterKey: Uint8Array): SecureBuffer {
 }
 
 function deriveDeterministicKey(seed: Uint8Array, purpose: string): SecureBuffer {
-  const info = new TextEncoder().encode(`zerovault-deterministic-${purpose}-v1`);
+  const info = new TextEncoder().encode(`socler-deterministic-${purpose}-v1`);
   const raw = hkdf(sha256, seed, new Uint8Array(0), info, 32);
   return SecureBuffer.from(raw);
 }
@@ -88,7 +88,7 @@ function zeroBuffer(buf: Uint8Array | null): void {
 }
 
 async function computePinVerifyHash(pin: string, salt: Uint8Array): Promise<string> {
-  const hash = await deriveWithPBKDF2Async(pin, salt);
+  const hash = await deriveWithArgon2(pin, salt);
   const hex = bytesToHex(hash);
   hash.fill(0);
   return hex;
@@ -138,7 +138,7 @@ export async function createVault(pin: string): Promise<VaultGenesisResult> {
     const deviceSalt = SecureBuffer.random(32);
     await SecureStore.setItemAsync(SECURESTORE_KEYS.DEVICE_SALT, deviceSalt.toHex());
 
-    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt.copy());
+    masterKey = await deriveWithArgon2(pin, deviceSalt.copy());
     deviceSalt.dispose();
     wrappingKey = deriveWrapKey(masterKey);
 
@@ -207,7 +207,7 @@ export async function unlockVault(pin: string): Promise<VaultKeySet | null> {
   let wrappingKey: SecureBuffer | null = null;
 
   try {
-    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt);
+    masterKey = await deriveWithArgon2(pin, deviceSalt);
 
     wrappingKey = deriveWrapKey(masterKey);
 
@@ -272,7 +272,7 @@ export async function importVaultSeed(pin: string, seed: VaultSeed): Promise<Vau
 
   try {
     const deviceSalt = hexToBytes(seed.deviceSalt);
-    masterKey = await deriveWithPBKDF2Async(pin, deviceSalt);
+    masterKey = await deriveWithArgon2(pin, deviceSalt);
 
     if (!(await verifyPin(pin, seed.pinVerifySalt, seed.pinVerifyHash))) {
       throw new Error('INCORRECT_PASSWORD: The Master Password does not match this vault seed.');
@@ -339,7 +339,7 @@ export async function recoverWithMnemonic(mnemonic: string, newPin: string): Pro
     }
 
     const deviceSalt = hexToBytes(deviceSaltHex);
-    newMasterKey = await deriveWithPBKDF2Async(newPin, deviceSalt);
+    newMasterKey = await deriveWithArgon2(newPin, deviceSalt);
     newWrappingKey = deriveWrapKey(newMasterKey);
 
     const wVault = wrapKey(vaultKeyBuf.copy(), newWrappingKey.copy());
@@ -382,7 +382,7 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
     return null;
   }
 
-  const oldMasterKey = await deriveWithPBKDF2Async(oldPin, deviceSalt);
+  const oldMasterKey = await deriveWithArgon2(oldPin, deviceSalt);
 
   const oldWrappingKey = deriveWrapKey(oldMasterKey);
   const wVaultStr = await SecureStore.getItemAsync(SECURESTORE_KEYS.WRAPPED_VAULT_KEY);
@@ -400,7 +400,7 @@ export async function changePin(oldPin: string, newPin: string): Promise<VaultKe
   let newWrappingKey: SecureBuffer | null = null;
 
   try {
-    newMasterKey = await deriveWithPBKDF2Async(newPin, deviceSalt);
+    newMasterKey = await deriveWithArgon2(newPin, deviceSalt);
     newWrappingKey = deriveWrapKey(newMasterKey);
 
     const nWVault = wrapKey(vaultKey, newWrappingKey.copy());
@@ -442,7 +442,7 @@ export async function purgeVault(): Promise<void> {
     }
     catch { errors.push(key); }
   }
-  const bioKeys = ['zerovault_biometric_dbkey_v3', 'zerovault_biometric_cipherkey_v3', 'zerovault_biometric_signkey_v3', 'zerovault_biometric_pin_v3'];
+  const bioKeys = ['socler_biometric_dbkey_v3', 'socler_biometric_cipherkey_v3', 'socler_biometric_signkey_v3', 'socler_biometric_pin_v3'];
   for (const key of bioKeys) {
     try { 
       await SecureStore.setItemAsync(key, 'PURGED');

@@ -41,7 +41,7 @@ function NavigationGate() {
   const router = useRouter();
   const status = useVaultStore((s) => s.status);
 
-  const isVerified = kv.get('zerovault_phrase_verified') === 'true';
+  const isVerified = kv.get('socler_phrase_verified') === 'true';
   const isAuth = segments[0] === 'auth';
   const needsRedirect = status === 'unlocked' && !isVerified && !isAuth;
 

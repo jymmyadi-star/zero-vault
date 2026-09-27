@@ -1,4 +1,4 @@
-package com.zerovault.app
+package com.socler.app
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

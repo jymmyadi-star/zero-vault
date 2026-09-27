@@ -1,4 +1,4 @@
-package com.zerovault.app
+package com.socler.app
 
 import android.app.Application
 import android.content.res.Configuration

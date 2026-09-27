@@ -3,7 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { useVaultStore } from '../store/vault-store';
 import { kv } from '../storage';
 
-const IDLE_TIMEOUT_KEY = 'zerovault_idle_timeout_minutes';
+const IDLE_TIMEOUT_KEY = 'socler_idle_timeout_minutes';
 const DEFAULT_IDLE_MINUTES = 5;
 const CHECK_INTERVAL_MS = 10_000;
 
@@ -44,7 +44,7 @@ export function useAutoLock(): void {
         resetActivityTimer();
       }
       if (state === 'background') {
-        const biometricEnabled = kv.get('zerovault_biometric_enabled') === 'true';
+        const biometricEnabled = kv.get('socler_biometric_enabled') === 'true';
         if (biometricEnabled && useVaultStore.getState().status === 'unlocked') {
           useVaultStore.getState().lock();
         }

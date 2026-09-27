@@ -5,7 +5,7 @@ try {
   MMKV = require('react-native-mmkv').MMKV;
 } catch {}
 
-const MMKV_ENCRYPTION_KEY = 'zerovault_mmkv_encryption_key';
+const MMKV_ENCRYPTION_KEY = 'socler_mmkv_encryption_key';
 
 interface StorageLike {
   getString(key: string): string | undefined;
@@ -59,14 +59,14 @@ function initMMKV(): StorageLike {
 
   let storage: StorageLike;
   try {
-    storage = new MMKV({ id: 'zerovault-kv' });
+    storage = new MMKV({ id: 'socler-kv' });
   } catch {
     return new FallbackStorage();
   }
 
   getOrCreateEncryptionKey().then((encKey) => {
     try {
-      const encrypted = new MMKV({ id: 'zerovault-kv-enc', encrypt: true, key: encKey });
+      const encrypted = new MMKV({ id: 'socler-kv-enc', encrypt: true, key: encKey });
       _storage = encrypted;
     } catch {
       // Encryption not supported by this MMKV version; keep unencrypted instance

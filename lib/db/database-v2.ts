@@ -1,12 +1,13 @@
 import { drizzle, type ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
-import { openDatabaseSync } from 'expo-sqlite';
+import { openDatabaseSync, deleteDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import * as schema from './schema-v2';
 import { Logger } from '../logger';
 
 export type V2Database = ExpoSQLiteDatabase<typeof schema>;
 
 let db: V2Database | null = null;
-const DB_NAME = 'zerovault_v2.db';
+let sqlite: SQLiteDatabase | null = null;
+const DB_NAME = 'socler_v2.db';
 
 export async function initializeV2Database(vaultKeyHex: string): Promise<V2Database> {
   if (db) return db;
@@ -15,9 +16,9 @@ export async function initializeV2Database(vaultKeyHex: string): Promise<V2Datab
     throw new Error('[Database V2] Invalid encryption key format');
   }
 
-  const sqlite = openDatabaseSync(DB_NAME);
+  sqlite = openDatabaseSync(DB_NAME);
 
-  // Apply SQLCipher encryption
+  // Apply SQLCipher encryption to this single connection.
   await sqlite.execAsync(`PRAGMA key = "x'${vaultKeyHex}'"`);
   await sqlite.execAsync(`PRAGMA cipher_memory_security = ON`);
 
@@ -27,9 +28,8 @@ export async function initializeV2Database(vaultKeyHex: string): Promise<V2Datab
 }
 
 async function ensureV2Tables(): Promise<void> {
-  if (!db) return;
+  if (!db || !sqlite) return;
   try {
-    const sqlite = openDatabaseSync(DB_NAME);
     await sqlite.execAsync(`
       CREATE TABLE IF NOT EXISTS vault_items (
         id TEXT PRIMARY KEY,
@@ -96,20 +96,22 @@ async function ensureV2Tables(): Promise<void> {
   }
 }
 
-import { sql } from 'drizzle-orm';
-
 export function getV2Database(): V2Database {
   if (!db) throw new Error('[Database V2] getV2Database() called before initializeV2Database()');
   return db;
 }
 
 export async function purgeV2Database(): Promise<void> {
-  if (db) {
-    const sqlite = openDatabaseSync(DB_NAME);
-    await sqlite.execAsync('DELETE FROM vault_items');
-    await sqlite.execAsync('DELETE FROM sync_backlog');
-    await sqlite.execAsync('DELETE FROM sync_meta');
-    await sqlite.execAsync('DELETE FROM _conflicts');
+  if (sqlite) {
+    try { sqlite.closeSync(); } catch (e: any) {
+      Logger.warn('[Database V2] Failed to close database connection: ' + (e instanceof Error ? e.message : String(e)), { module: 'DatabaseV2' });
+    }
   }
+  sqlite = null;
   db = null;
+  try {
+    await deleteDatabaseAsync(DB_NAME);
+  } catch (e: any) {
+    Logger.warn('[Database V2] Database file deletion failed (may not exist yet): ' + (e instanceof Error ? e.message : String(e)), { module: 'DatabaseV2' });
+  }
 }

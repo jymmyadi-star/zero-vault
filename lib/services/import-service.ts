@@ -94,9 +94,7 @@ function mapCSVFields(headers: string[], row: string[]): ImportPreviewItem {
     const alias = CSV_HEADER_ALIASES[normalized];
     if (alias) {
       const existing = item[alias.field];
-      if (existing) {
-        (item as any)[alias.field] = existing;
-      } else {
+      if (!existing) {
         (item as any)[alias.field] = value;
       }
     } else if (normalized === 'type') {

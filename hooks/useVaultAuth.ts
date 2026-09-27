@@ -15,6 +15,7 @@ import {
 } from '../lib/crypto/vault-keychain';
 import { validateMnemonic } from '../lib/crypto/bip39';
 import { kv } from '../lib/storage';
+import { purgeV2Database } from '../lib/db/database-v2';
 import { Logger } from '../lib/logger';
 import { hapticTouch, hapticSuccess, hapticError, hapticWarning } from '../lib/haptics';
 import { SecureBuffer } from '../lib/crypto/secure-buffer';
@@ -59,9 +60,9 @@ export function useVaultAuth() {
       if (!has || !enrolled) return;
 
       const SecureStore = require('expo-secure-store');
-      const vk = await SecureStore.getItemAsync('zerovault_biometric_dbkey_v3', { requireAuthentication: true });
-      const ck = await SecureStore.getItemAsync('zerovault_biometric_cipherkey_v3', { requireAuthentication: true });
-      const sk = await SecureStore.getItemAsync('zerovault_biometric_signkey_v3', { requireAuthentication: true });
+      const vk = await SecureStore.getItemAsync('socler_biometric_dbkey_v3', { requireAuthentication: true });
+      const ck = await SecureStore.getItemAsync('socler_biometric_cipherkey_v3', { requireAuthentication: true });
+      const sk = await SecureStore.getItemAsync('socler_biometric_signkey_v3', { requireAuthentication: true });
 
       if (vk && ck && sk) {
         const { hexToBytes } = await import('../lib/crypto/crypto-utils');
@@ -88,7 +89,7 @@ export function useVaultAuth() {
         setMode('unlock');
         const storeStatus = useVaultStore.getState().status;
         const justMounted = storeStatus !== 'locked';
-        const bio = kv.get('zerovault_biometric_enabled') === 'true';
+        const bio = kv.get('socler_biometric_enabled') === 'true';
         if (bio && !justMounted) triggerBiometricUnlock();
       } else {
         setMode('setup');
@@ -174,7 +175,7 @@ export function useVaultAuth() {
       return;
     }
 
-    const newPin = (mode === 'setup' ? pin : pin) + digit;
+    const newPin = pin + digit;
 
     if (newPin.length >= MIN_PASSWORD_LENGTH) {
       setPin(newPin);
@@ -261,13 +262,17 @@ export function useVaultAuth() {
   const handleDeleteVault = useCallback(() => {
     Alert.alert('Purge Vault', 'Delete all data and create a new vault?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Purge', style: 'destructive', onPress: () => {
-        import('../lib/crypto/vault-keychain').then(mod => {
-          kv.delete('zerovault_phrase_verified');
-          mod.purgeVault();
+      { text: 'Purge', style: 'destructive', onPress: async () => {
+        try {
+          await purgeV2Database();
+          const { purgeVault } = await import('../lib/crypto/vault-keychain');
+          await purgeVault();
+          kv.delete('socler_phrase_verified');
           setMode('setup');
           setPin('');
-        });
+        } catch (e: any) {
+          setError('Purge failed: ' + (e?.message || 'Unknown error'));
+        }
       }},
     ]);
   }, []);

@@ -66,7 +66,7 @@ export default function VaultItemDetailScreen() {
             <Ionicons name={item.favorite ? 'star' : 'star-outline'} size={18} color={item.favorite ? '#FFD60A' : '#8E8E93'} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {
-            (globalThis as any).__zerovault_lastParams = { editId: id };
+            (globalThis as any).__socler_lastParams = { editId: id };
             expoRouter.push({
               pathname: item.itemType === 'password' ? '/create-password' : item.itemType === 'seed_phrase' ? '/create-seed' : '/create-note',
               params: { editId: id },

@@ -1,21 +1,21 @@
 /**
- * GDPR Compliance Constants — Zero Vault
+ * GDPR Compliance Constants — Socler
  * EU General Data Protection Regulation (GDPR) 2016/679
  */
 
 export const GDPR = {
   DATA_CONTROLLER: {
-    name: 'Zero Vault',
+    name: 'Socler',
     legal_form: 'Individual Entrepreneur / PFA',
-    email: 'legal@zerovault.app',
-    privacy_email: 'privacy@zerovault.app',
-    website: 'https://zerovault.app',
+    email: 'legal@socler.app',
+    privacy_email: 'privacy@socler.app',
+    website: 'https://socler.app',
     country: 'Romania (EU)',
   },
 
   DPO: {
-    name: 'Zero Vault Data Protection Officer',
-    email: 'dpo@zerovault.app',
+    name: 'Socler Data Protection Officer',
+    email: 'dpo@socler.app',
   },
 
   SUPERVISORY_AUTHORITY: {
@@ -136,6 +136,6 @@ export const GDPR = {
 
   MDR: {
     applicable: false,
-    note: 'Zero Vault is a password manager / crypto vault. It does not store or process health data and is NOT a medical device under EU MDR 2017/745.',
+    note: 'Socler is a password manager / crypto vault. It does not store or process health data and is NOT a medical device under EU MDR 2017/745.',
   },
 };

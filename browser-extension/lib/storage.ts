@@ -1,7 +1,7 @@
 import type { VaultItem, DecryptedVaultItem, EncryptedEnvelope } from './types';
 import { decryptPayload } from './crypto';
 
-const DB_NAME = 'zerovault-extension';
+const DB_NAME = 'socler-extension';
 const STORE_NAME = 'vault_items';
 const META_STORE = 'meta';
 const DB_VERSION = 1;
@@ -116,20 +116,20 @@ export interface VaultConfig {
 
 export async function setVaultConfig(config: VaultConfig): Promise<void> {
   return new Promise((resolve) => {
-    chrome.storage.local.set({ zerovault_config: config }, () => resolve());
+    chrome.storage.local.set({ socler_config: config }, () => resolve());
   });
 }
 
 export async function getVaultConfig(): Promise<VaultConfig | null> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(['zerovault_config'], (result) => {
-      resolve(result.zerovault_config || null);
+    chrome.storage.local.get(['socler_config'], (result) => {
+      resolve((result.socler_config as VaultConfig | undefined) || null);
     });
   });
 }
 
 export async function clearVaultConfig(): Promise<void> {
   return new Promise((resolve) => {
-    chrome.storage.local.remove(['zerovault_config'], () => resolve());
+    chrome.storage.local.remove(['socler_config'], () => resolve());
   });
 }

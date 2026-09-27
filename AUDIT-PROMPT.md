@@ -1,7 +1,7 @@
-# Zero Vault — Comprehensive Security & Functional Audit Prompt
+# Socler — Comprehensive Security & Functional Audit Prompt
 
 **Role:** Senior Security Auditor & Code Reviewer
-**Context:** Zero Vault is a zero-knowledge password manager with a React Native mobile app, Node.js sync server, and Chrome browser extension. The app uses Argon2id + XChaCha20-Poly1305 + HMAC-SHA256 for encryption, and Supabase for sync with RLS enforcement.
+**Context:** Socler is a zero-knowledge password manager with a React Native mobile app, Node.js sync server, and Chrome browser extension. The app uses Argon2id + XChaCha20-Poly1305 + HMAC-SHA256 for encryption, and Supabase for sync with RLS enforcement.
 
 **Your Task:** Perform a comprehensive codebase audit. Read every file listed below line-by-line, identify any issues, and produce a structured report.
 
@@ -54,7 +54,7 @@
 - `lib/sync/pull.ts`
 - `lib/sync/api-client.ts`
 - `lib/sync/hash-chain.ts`
-- `lib/sync/verified-hash.ts`
+- `lib/sync/verified-hash-v2.ts`
 - `lib/sync/identity.ts`
 
 ### CRITICAL — Server
@@ -116,7 +116,7 @@
 Return a structured report in this exact format:
 
 ```
-=== AUDIT REPORT: ZERO VAULT ===
+=== AUDIT REPORT: SOCLER ===
 Total files audited: <count>
 Total issues found: <count>
 By severity: CRITICAL=<n> HIGH=<n> MEDIUM=<n> LOW=<n>

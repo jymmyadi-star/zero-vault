@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,7 +86,7 @@ export default function PrivacyPolicyScreen() {
           {GDPR.DATA_SUBJECT_RIGHTS.map((r) => (
             <Text key={r.article} style={styles.rightsItem}>Â· {r.article}: {r.right}</Text>
           ))}
-          <Text style={styles.body}>To exercise these rights, contact: privacy@zerovault.app or dpo@zerovault.app. Response within 30 days.</Text>
+          <Text style={styles.body}>To exercise these rights, contact: privacy@socler.app or dpo@socler.app. Response within 30 days.</Text>
         </Section>
 
         <Section title="[ 09 ] SUPERVISORY AUTHORITY">
@@ -103,7 +103,7 @@ export default function PrivacyPolicyScreen() {
         </Section>
 
         <Section title="[ 11 ] CHILDREN'S PRIVACY">
-          <Text style={styles.body}>Zero Vault is not intended for children under 13. Users aged 13-15 require parental consent per GDPR Article 8. We do not knowingly collect data from children under 13.</Text>
+          <Text style={styles.body}>Socler is not intended for children under 13. Users aged 13-15 require parental consent per GDPR Article 8. We do not knowingly collect data from children under 13.</Text>
         </Section>
 
         <Section title="[ 12 ] CHANGES TO THIS POLICY">

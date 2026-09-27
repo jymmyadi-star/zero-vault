@@ -1,17 +1,17 @@
 import { supabase, isSupabaseConfigured } from '../supabase';
 import { useVaultStore } from '../store/vault-store';
-import { pushChangeViaApi, drainBacklog } from './push';
+import { pushChangeViaApi, drainBacklog, enqueueToBacklog } from './push';
 import { pullChanges } from './pull';
 import { startSyncScheduler, stopSyncScheduler } from './sync-scheduler';
-import { connectWebSocket, disconnectWebSocket } from './api-client';
 import { Logger } from '../logger';
 import { kv } from '../storage';
 import { consentManager } from '../consent-manager';
 import { deriveDeviceCredentials } from '../crypto/crypto-utils';
 import * as SecureStore from 'expo-secure-store';
 import { pushVaultSeed } from './identity';
+import { getV2VaultItems } from '../services/vault-service-v2';
 
-const SYNC_ENABLED_KEY = 'zerovault_sync_enabled';
+const SYNC_ENABLED_KEY = 'socler_sync_enabled';
 
 export function isSyncEnabled(): boolean {
   return kv.get(SYNC_ENABLED_KEY) === 'true';
@@ -26,7 +26,7 @@ export async function enableSync(): Promise<boolean> {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      const pairingId = await SecureStore.getItemAsync('zerovault_pairing_id_v3');
+      const pairingId = await SecureStore.getItemAsync('socler_pairing_id_v3');
       if (!pairingId) {
         Logger.warn('[Sync] No pairing ID — cannot enable deterministic sync', { module: 'SyncConfig' });
         return false;
@@ -60,16 +60,11 @@ export async function enableSync(): Promise<boolean> {
     kv.set(SYNC_ENABLED_KEY, 'true');
     useVaultStore.getState().setSyncEnabled(true);
 
-    connectWebSocket();
-
     // Push the seed to the server so the extension can download it
     await pushVaultSeed();
 
     // ENQUEUE ALL EXISTING ITEMS FOR INITIAL SYNC
     try {
-      const { getV2VaultItems } = require('../services/vault-service-v2');
-      const { enqueueToBacklog } = require('./push');
-      
       const cipherKey = useVaultStore.getState().cipherKey;
       if (cipherKey) {
         const keyCopy = cipherKey.copy();
@@ -107,7 +102,6 @@ export async function enableSync(): Promise<boolean> {
 
 export async function disableSync(): Promise<void> {
   stopSyncScheduler();
-  disconnectWebSocket();
 
   kv.set(SYNC_ENABLED_KEY, 'false');
   useVaultStore.getState().setSyncEnabled(false);
@@ -122,7 +116,6 @@ export function initSyncState(): void {
     if (isSupabaseConfigured && supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session) {
-          connectWebSocket();
           startSyncScheduler();
         }
       });

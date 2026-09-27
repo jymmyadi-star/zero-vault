@@ -23,7 +23,7 @@ export interface BreachRecord {
 }
 
 class DataBreachManager {
-  private readonly KEY = 'zerovault_breach_log';
+  private readonly KEY = 'socler_breach_log';
 
   getLog(): BreachRecord[] {
     const raw = kv.get(this.KEY);

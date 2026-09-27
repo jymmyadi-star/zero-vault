@@ -107,7 +107,7 @@ export function deriveWithHKDF(masterKey: Uint8Array, info: string, length = 32)
 }
 
 export function derivePairingId(seed: Uint8Array): string {
-  const info = new TextEncoder().encode('zerovault-pairing-v1');
+  const info = new TextEncoder().encode('socler-pairing-v1');
   const raw = hkdf(sha256, seed, new Uint8Array(0), info, 10);
   const hex = bytesToHex(raw);
   raw.fill(0);
@@ -116,8 +116,8 @@ export function derivePairingId(seed: Uint8Array): string {
 
 export function deriveDeviceCredentials(pairingIdHex: string): { email: string; password: string } {
   const pairingId = hexToBytes(pairingIdHex);
-  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('zerovault-auth-pw-v1'), 32);
-  const email = `zk_${pairingIdHex.slice(0, 16)}@zerovault.local`;
+  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('socler-auth-pw-v1'), 32);
+  const email = `zk_${pairingIdHex.slice(0, 16)}@socler.local`;
   const password = bytesToHex(pw);
   pw.fill(0);
   return { email, password };

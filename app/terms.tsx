@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ export default function TermsScreen() {
     hapticSuccess();
     consentManager.grant('terms_of_use', '1.0.0');
     consentManager.grant('privacy_policy', GDPR.PRIVACY_POLICY.current_version);
-    kv.set('zerovault_terms_accepted', 'true');
+    kv.set('socler_terms_accepted', 'true');
     router.replace('/unlock');
   };
 
@@ -51,11 +51,11 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 01 ] ZERO-KNOWLEDGE ARCHITECTURE</Text>
           <Text style={styles.podBody}>
-            Zero Vault operates on a zero-knowledge protocol. Your Master PIN, decryption keys, and plaintext data NEVER leave your device. The server stores only encrypted memory blocks (XChaCha20-Poly1305 ciphertext) that cannot be decrypted without your PIN. We have no technical capability to access, recover, or reset your vault.
+            Socler operates on a zero-knowledge protocol. Your Master PIN, decryption keys, and plaintext data NEVER leave your device. The server stores only encrypted memory blocks (XChaCha20-Poly1305 ciphertext) that cannot be decrypted without your PIN. We have no technical capability to access, recover, or reset your vault.
           </Text>
           <View style={styles.warningStrip}>
             <Ionicons name="warning" size={14} color="#FF3B30" />
-            <Text style={styles.warningText}>IF YOU LOSE YOUR MASTER PIN, YOUR DATA IS PERMANENTLY AND IRREVERSIBLY LOST. ZERO VAULT CANNOT RECOVER IT.</Text>
+            <Text style={styles.warningText}>IF YOU LOSE YOUR MASTER PIN, YOUR DATA IS PERMANENTLY AND IRREVERSIBLY LOST. SOCLER CANNOT RECOVER IT.</Text>
           </View>
         </View>
 
@@ -63,7 +63,7 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 02 ] EMERGENCY DISCLAIMER</Text>
           <Text style={styles.podBody}>
-            Zero Vault is a personal password manager and encrypted vault. It does not provide professional advice, diagnosis, or emergency services. In case of emergency, contact local emergency services immediately.
+            Socler is a personal password manager and encrypted vault. It does not provide professional advice, diagnosis, or emergency services. In case of emergency, contact local emergency services immediately.
           </Text>
         </View>
 
@@ -71,7 +71,7 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 03 ] ELIGIBILITY</Text>
           <Text style={styles.podBody}>
-            You must be at least 16 years old to use Zero Vault independently, in compliance with GDPR Article 8. Users under 16 require parental consent. Zero Vault does not knowingly collect data from children under 13.
+            You must be at least 16 years old to use Socler independently, in compliance with GDPR Article 8. Users under 16 require parental consent. Socler does not knowingly collect data from children under 13.
           </Text>
         </View>
 
@@ -79,7 +79,7 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 04 ] LICENSE & RESTRICTIONS</Text>
           <Text style={styles.podBody}>
-            Zero Vault grants you a limited, non-exclusive license for personal use. You agree NOT to: copy, modify, reverse engineer, distribute, or use the application for illegal purposes.
+            Socler grants you a limited, non-exclusive license for personal use. You agree NOT to: copy, modify, reverse engineer, distribute, or use the application for illegal purposes.
           </Text>
         </View>
 
@@ -87,7 +87,7 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 05 ] PRIVACY & GDPR</Text>
           <Text style={styles.podBody}>
-            Your use is governed by the Privacy Policy. Zero Vault fully complies with GDPR. Data is encrypted before leaving your device. You have the right to access, rectify, erase, port, object, and withdraw consent at any time. Contact: privacy@zerovault.app.
+            Your use is governed by the Privacy Policy. Socler fully complies with GDPR. Data is encrypted before leaving your device. You have the right to access, rectify, erase, port, object, and withdraw consent at any time. Contact: privacy@socler.app.
           </Text>
         </View>
 
@@ -103,7 +103,7 @@ export default function TermsScreen() {
         <View style={styles.pod}>
           <Text style={styles.podTitle}>[ 07 ] LEGAL PROTECTIONS</Text>
           <Text style={styles.podBody}>
-            Zero Vault is provided AS-IS without warranties of any kind. We are not liable for indirect or incidental damages. You agree to indemnify Zero Vault for damages resulting from improper use. Disputes are resolved through individual arbitration in Romania. These Terms are governed by Romanian law.
+            Socler is provided AS-IS without warranties of any kind. We are not liable for indirect or incidental damages. You agree to indemnify Socler for damages resulting from improper use. Disputes are resolved through individual arbitration in Romania. These Terms are governed by Romanian law.
           </Text>
         </View>
 
@@ -121,7 +121,7 @@ export default function TermsScreen() {
           <View style={[styles.checkbox, tick2 && styles.checkboxOn]}>
             {tick2 && <Ionicons name="checkmark" size={12} color="#020204" />}
           </View>
-          <Text style={styles.checkLabel}>I understand Zero Vault is AS-IS with ZERO liability for data loss.</Text>
+          <Text style={styles.checkLabel}>I understand Socler is AS-IS with ZERO liability for data loss.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.checkRow} onPress={() => { hapticTouch(); setTick3(!tick3); }} activeOpacity={0.7}>

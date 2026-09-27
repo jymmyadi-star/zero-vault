@@ -1,11 +1,11 @@
 export default {
   expo: {
-    name: "Zero Vault",
-    slug: "zero-vault",
+    name: "Socler",
+    slug: "socler",
     version: "1.0.0",
     orientation: "portrait",
     icon: "./assets/icon.png",
-    scheme: "zerovault",
+    scheme: "socler",
     userInterfaceStyle: "dark",
     splash: {
       image: "./assets/splash-icon.png",
@@ -14,10 +14,10 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.zerovault.app",
+      bundleIdentifier: "com.socler.app",
       infoPlist: {
         NSFaceIDUsageDescription:
-          "Zero Vault uses biometrics to unlock your vault quickly.",
+          "Socler uses biometrics to unlock your vault quickly.",
       },
     },
     android: {
@@ -25,11 +25,12 @@ export default {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#09090b",
       },
-      package: "com.zerovault.app",
+      package: "com.socler.app",
     },
     plugins: [
       "expo-router",
       "expo-secure-store",
+      ["expo-sqlite", { "useSQLCipher": true }],
       "expo-local-authentication",
       ["expo-build-properties", { "android": { "newArchEnabled": false } }],
       [

@@ -1,17 +1,17 @@
 import { eq } from 'drizzle-orm';
-import { getV2Database } from '../db/database-provider-v2';
+import { getV2Database } from '../db/database-v2';
 import { syncMeta } from '../db/schema-v2';
 import { Logger } from '../logger';
 import { hexToBytes, bytesToHex, encryptPayload, decryptPayload } from '../crypto/crypto-utils';
 import { hkdf } from '@noble/hashes/hkdf.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 
-const HASH_KEY = 'zerovault_verified_hash';
-const SEAL_DOMAIN = 'zerovault-hash-seal-key-v1';
+const HASH_KEY = 'socler_verified_hash';
+const SEAL_DOMAIN = 'socler-hash-seal-key-v1';
 
 function deriveSealKey(signKey: Uint8Array): Uint8Array {
   const info = new TextEncoder().encode(SEAL_DOMAIN);
-  const salt = sha256(new TextEncoder().encode('zerovault-seal-salt-v2'));
+  const salt = sha256(new TextEncoder().encode('socler-seal-salt-v2'));
   return hkdf(sha256, signKey, salt, info, 32);
 }
 
@@ -42,7 +42,7 @@ export async function writeStoredHash(hash: string): Promise<void> {
 export function sealVerifiedHash(hash: string, signKey: Uint8Array): string {
   const sealKey = deriveSealKey(signKey);
   try {
-    const envelope = encryptPayload({ hash }, sealKey, { context: 'zerovault-hash-seal-v2' });
+    const envelope = encryptPayload({ hash }, sealKey, { context: 'socler-hash-seal-v2' });
     return JSON.stringify(envelope);
   } finally {
     sealKey.fill(0);

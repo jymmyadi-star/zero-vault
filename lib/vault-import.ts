@@ -1,6 +1,6 @@
 /**
  * Import vault items from Bitwarden and 1Password CSV exports.
- * Parses CSV, maps fields to Zero Vault format, returns typed results.
+ * Parses CSV, maps fields to Socler format, returns typed results.
  */
 
 export interface ImportedItem {

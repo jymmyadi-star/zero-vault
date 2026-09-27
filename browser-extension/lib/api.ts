@@ -18,9 +18,9 @@ export async function getApiUrl(): Promise<string> {
   // 2. Runtime override via extension storage (for self-hosters)
   // if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
   //   return new Promise((resolve) => {
-  //     chrome.storage.local.get(['ZEROVAULT_API_URL'], (result: Record<string, any>) => {
-  //       if (typeof result.ZEROVAULT_API_URL === 'string') {
-  //         API_URL = result.ZEROVAULT_API_URL;
+  //     chrome.storage.local.get(['SOCLER_API_URL'], (result: Record<string, any>) => {
+  //       if (typeof result.SOCLER_API_URL === 'string') {
+  //         API_URL = result.SOCLER_API_URL;
   //       }
   //       isApiUrlLoaded = true;
   //       resolve(API_URL);

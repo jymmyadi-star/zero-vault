@@ -74,7 +74,7 @@ export default function SeedsScreen() {
     : items;
 
   const handlePress = (item: VaultItemMetadata) => {
-    (globalThis as any).__zerovault_lastParams = { editId: item.id };
+    (globalThis as any).__socler_lastParams = { editId: item.id };
     router.push({ pathname: '/item/[id]', params: { id: item.id } });
   };
 

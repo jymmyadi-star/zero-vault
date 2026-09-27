@@ -1,15 +1,12 @@
 import { getIsOnline, onNetworkChange, initNetworkMonitor } from '../network-status';
-import { onWsEvent, isWsConnected } from './api-client';
 import { pullChanges } from './pull';
 import { drainBacklog } from './push';
 import { Logger } from '../logger';
 
 let schedulerStarted = false;
 let pullTimer: ReturnType<typeof setInterval> | null = null;
-let wsUnsubscribe: (() => void) | null = null;
 
 const PULL_INTERVAL_MS = 60_000;
-const PULL_INTERVAL_ACTIVE_MS = 30_000;
 
 let lastPullTime = 0;
 const MIN_PULL_GAP_MS = 5_000;
@@ -39,17 +36,6 @@ export function startSyncScheduler(): void {
     }
   });
 
-  wsUnsubscribe = onWsEvent((type, data) => {
-    if (type === 'sync:available') {
-      Logger.info('WebSocket push — sync available', {
-        module: 'SyncScheduler',
-        event: 'ws_event',
-        count: data?.count,
-      });
-      throttledPull();
-    }
-  });
-
   pullTimer = setInterval(() => {
     if (getIsOnline()) {
       throttledPull();
@@ -68,11 +54,6 @@ export function stopSyncScheduler(): void {
   if (pullTimer) {
     clearInterval(pullTimer);
     pullTimer = null;
-  }
-
-  if (wsUnsubscribe) {
-    wsUnsubscribe();
-    wsUnsubscribe = null;
   }
 
   Logger.info('Sync scheduler stopped', { module: 'SyncScheduler', event: 'stop' });

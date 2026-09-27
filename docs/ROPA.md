@@ -1,9 +1,9 @@
 # Records of Processing Activities (ROPA)
-## GDPR Article 30 — Zero Vault
+## GDPR Article 30 — Socler
 
 **Date:** 2026-05-25
-**Controller:** Zero Vault (Romania, EU)
-**DPO:** dpo@zerovault.app
+**Controller:** Socler (Romania, EU)
+**DPO:** dpo@socler.app
 
 ---
 
@@ -88,6 +88,6 @@
 
 ---
 
-**Maintained by:** Zero Vault DPO (dpo@zerovault.app)
+**Maintained by:** Socler DPO (dpo@socler.app)
 **Last updated:** May 25, 2026
 **Next review:** May 25, 2027

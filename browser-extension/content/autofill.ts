@@ -162,7 +162,7 @@ class AutofillOverlay {
     this.container.className = 'wrapper';
     
     this.container.innerHTML = `
-      <div class="icon-btn" id="trigger" title="Zero Vault Autofill">
+      <div class="icon-btn" id="trigger" title="Socler Autofill">
         <svg viewBox="0 0 24 24" width="16" height="16" style="fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;">
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           <path d="M12 8v4"></path>
@@ -312,7 +312,7 @@ class AutofillOverlay {
     this.shadow.getElementById('unlockBtn')?.addEventListener('click', () => {
       // In MV3, we can't programmatically open the popup easily without activeTab/action,
       // but we can try to focus it or tell user to click the extension icon.
-      dropdown.innerHTML = `<div class="empty-state">Click the Zero Vault icon in your browser toolbar to unlock.</div>`;
+      dropdown.innerHTML = `<div class="empty-state">Click the Socler icon in your browser toolbar to unlock.</div>`;
     });
   }
 

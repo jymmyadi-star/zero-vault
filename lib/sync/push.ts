@@ -21,7 +21,7 @@ const MAX_RETRY_COUNT = 10;
 async function getCurrentKeyEpoch(): Promise<number> {
   try {
     const { default: SecureStore } = await import('expo-secure-store');
-    const epochStr = await SecureStore.getItemAsync('zerovault_key_epoch');
+    const epochStr = await SecureStore.getItemAsync('socler_key_epoch_v3');
     return epochStr ? parseInt(epochStr, 10) : 0;
   } catch {
     return 0;

@@ -17,9 +17,10 @@ import {
 import { SecureBuffer } from '../../lib/crypto/secure-buffer';
 import { storeVaultItems, setMeta, getMeta, clearVault, getVaultConfig, setVaultConfig, getVaultItems, decryptWithKey } from '../lib/storage';
 import type { VaultItem, DecryptedVaultItem, VaultSeedData } from '../lib/types';
+import { argon2id } from 'hash-wasm';
 
 const AUTO_LOCK_DELAY_MINUTES = 15;
-const AUTO_LOCK_ALARM = 'zerovault-auto-lock';
+const AUTO_LOCK_ALARM = 'socler-auto-lock';
 
 interface VaultState {
   cipherKey: any | null;
@@ -70,38 +71,27 @@ function parseWrapped(w: { iv: string; ciphertext: string; tag: string }): Wrapp
 
 // Helper: Derive a local wrapping key from the user's extension password
 async function deriveLocalWrapKey(password: string, saltHex: string): Promise<SecureBuffer> {
-  const encoder = new TextEncoder();
-  const passwordBytes = encoder.encode(password);
   const salt = hexToBytes(saltHex);
-  
-  // Use PBKDF2 via WebCrypto for the local password derivation
-  const baseKey = await crypto.subtle.importKey(
-    'raw',
-    passwordBytes,
-    { name: 'PBKDF2' },
-    false,
-    ['deriveBits']
-  );
 
-  const derivedBits = await crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt: salt,
-      iterations: 210000,
-      hash: 'SHA-256'
-    },
-    baseKey,
-    256 // 32 bytes
-  );
+  // Argon2id (memory-hard) via WASM — matches the mobile app's KDF.
+  const key = await argon2id({
+    password,
+    salt,
+    parallelism: 4,
+    iterations: 6,
+    memorySize: 131072,
+    hashLength: 32,
+    outputType: 'binary',
+  });
 
-  return SecureBuffer.from(new Uint8Array(derivedBits));
+  return SecureBuffer.from(key);
 }
 
 async function setupWithMnemonic(mnemonic: string, password: string): Promise<boolean> {
   try {
     const seed = bip39MnemonicToSeed(mnemonic);
     const pairingId = derivePairingId(seed);
-    const recoveryKey = deriveWithHKDF(seed, 'zerovault-recovery-wrap-v1');
+    const recoveryKey = deriveWithHKDF(seed, 'socler-recovery-wrap-v1');
 
     const creds = deriveDeviceCredentials(pairingId);
     try {
@@ -127,7 +117,7 @@ async function setupWithMnemonic(mnemonic: string, password: string): Promise<bo
       throw new Error(`Seed data missing or incomplete: ${JSON.stringify(seedData)}`);
     }
 
-    const cipherKey = deriveWithHKDF(seed, 'zerovault-deterministic-cipher-v1');
+    const cipherKey = deriveWithHKDF(seed, 'socler-deterministic-cipher-v1');
 
     recoveryKey.fill(0);
     seed.fill(0);
@@ -438,11 +428,6 @@ async function handleMessage(msg: { type: string; data?: any }): Promise<any> {
       lockVault();
       await clearVault();
       chrome.alarms.clear(AUTO_LOCK_ALARM);
-      if (ws) {
-        ws.close();
-        ws = null;
-      }
-      clearTimeout(wsReconnectTimer);
       return { success: true };
 
     case 'AUTOFILL_QUERY': {

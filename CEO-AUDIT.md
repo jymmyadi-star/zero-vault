@@ -1,8 +1,8 @@
-# ZERO VAULT — CEO Verification Report
+# SOCLER — CEO Verification Report
 
 **Audited by:** Automated Security & Architecture Review  
 **Date:** 2026-05-30  
-**Project:** Zero Vault — Zero-Knowledge Password Manager  
+**Project:** Socler — Zero-Knowledge Password Manager  
 **Verdict:** 有条件通过 (Conditional Pass) — 7.5/10
 
 ---

@@ -5,7 +5,7 @@
  *   - Bitwarden JSON (importable into Bitwarden, Vaultwarden, compatible managers)
  *   - Generic CSV (name,url,username,password,notes,totp,folder)
  *
- * Zero Vault only exports decrypted data in-memory.
+ * Socler only exports decrypted data in-memory.
  * The export string is never written to disk by this module.
  * The caller is responsible for sharing/saving securely.
  */
@@ -120,7 +120,7 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
       encrypted: !!options.password,
       folders: [],
       items: bitwardenItems,
-      _zerovault_export: {
+      _socler_export: {
         version: '1.0',
         exportedAt: new Date().toISOString(),
         itemCount: bitwardenItems.length,

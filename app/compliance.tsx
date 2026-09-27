@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Alert, Linking } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +21,7 @@ export default function ComplianceScreen() {
       const consentRecords = consentManager.exportRecords();
       const exportData = {
         exported_at: new Date().toISOString(),
-        app: 'Zero Vault',
+        app: 'Socler',
         vault_items: items.map((i: any) => ({
           id: i.id,
           item_type: i.itemType,
@@ -36,8 +36,8 @@ export default function ComplianceScreen() {
 
       const { Share } = require('react-native');
       await Share.share({
-        message: `Zero Vault Data Export - ${new Date().toISOString()}\n\n${JSON.stringify(exportData, null, 2)}`,
-        title: 'Zero Vault Data Export',
+        message: `Socler Data Export - ${new Date().toISOString()}\n\n${JSON.stringify(exportData, null, 2)}`,
+        title: 'Socler Data Export',
       });
       hapticSuccess();
     } catch (e: any) {
@@ -50,8 +50,8 @@ export default function ComplianceScreen() {
     const logs = consentManager.exportRecords();
     const { Share } = require('react-native');
     await Share.share({
-      message: `Zero Vault Consent Records - ${new Date().toISOString()}\n\n${JSON.stringify(logs, null, 2)}`,
-      title: 'Zero Vault Audit Log',
+      message: `Socler Consent Records - ${new Date().toISOString()}\n\n${JSON.stringify(logs, null, 2)}`,
+      title: 'Socler Audit Log',
     });
     hapticSuccess();
   };
@@ -106,7 +106,7 @@ export default function ComplianceScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => {
-          Alert.alert('Right to Object (Art. 21)', 'You have the right to object to processing. Send an email to privacy@zerovault.app with subject "GDPR OBJECTION". Response within 30 days.', [{ text: 'OK' }]);
+          Alert.alert('Right to Object (Art. 21)', 'You have the right to object to processing. Send an email to privacy@socler.app with subject "GDPR OBJECTION". Response within 30 days.', [{ text: 'OK' }]);
         }} activeOpacity={0.7}>
           <Ionicons name="hand-left-outline" size={18} color="#FF3B30" />
           <View style={{ flex: 1 }}>
@@ -117,7 +117,7 @@ export default function ComplianceScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.actionBtn} onPress={() => {
-          Alert.alert('Right to Restriction (Art. 18)', 'You have the right to request restriction of processing. Send an email to privacy@zerovault.app with subject "GDPR RESTRICTION". Response within 30 days.', [{ text: 'OK' }]);
+          Alert.alert('Right to Restriction (Art. 18)', 'You have the right to request restriction of processing. Send an email to privacy@socler.app with subject "GDPR RESTRICTION". Response within 30 days.', [{ text: 'OK' }]);
         }} activeOpacity={0.7}>
           <Ionicons name="pause-circle-outline" size={18} color="#FF3B30" />
           <View style={{ flex: 1 }}>
