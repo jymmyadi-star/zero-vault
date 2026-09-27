@@ -37,7 +37,8 @@ jobs:
           script: |
             echo "::group::Build debug APK"
             cd android
-            ./gradlew assembleDebug --no-daemon
+            chmod +x gradlew
+            bash gradlew assembleDebug --no-daemon
             cd ..
             echo "::endgroup::"
 
