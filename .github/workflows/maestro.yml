@@ -24,6 +24,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       # ReactiveCircus/android-emulator-runner provisions the Android SDK,
       # auto-accepts licenses, boots the emulator, and runs the script.
       # (We do the Gradle build inside it so it runs against the provisioned SDK.)
@@ -35,6 +39,10 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
+            echo "::group::Install dependencies"
+            npm ci --legacy-peer-deps
+            echo "::endgroup::"
+
             echo "::group::Build debug APK"
             ( cd android && chmod +x gradlew && bash gradlew assembleDebug --no-daemon )
             echo "::endgroup::"
