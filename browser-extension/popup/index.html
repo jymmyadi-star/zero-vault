@@ -7,22 +7,22 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     
     :root {
-      --zv-bg: #030305;
-      --zv-surface: rgba(15, 15, 25, 0.4);
-      --zv-border: rgba(255, 255, 255, 0.03);
-      --zv-highlight: rgba(0, 240, 255, 0.15);
-      --zv-cyan: #00F0FF;
-      --zv-text: #FFFFFF;
-      --zv-text-muted: #8E8E93;
-      --zv-danger: #FF2A55;
+      --socler-bg: #030305;
+      --socler-surface: rgba(15, 15, 25, 0.4);
+      --socler-border: rgba(255, 255, 255, 0.03);
+      --socler-highlight: rgba(0, 240, 255, 0.15);
+      --socler-cyan: #00F0FF;
+      --socler-text: #FFFFFF;
+      --socler-text-muted: #8E8E93;
+      --socler-danger: #FF2A55;
     }
 
     body {
       width: 380px;
       height: 520px;
       font-family: 'Inter', system-ui, sans-serif;
-      background-color: var(--zv-bg);
-      color: var(--zv-text);
+      background-color: var(--socler-bg);
+      color: var(--socler-text);
       overflow: hidden;
       user-select: none;
       -webkit-font-smoothing: antialiased;
@@ -66,7 +66,7 @@
       font-size: 14px; 
       font-weight: 900; 
       letter-spacing: 4px; 
-      background: linear-gradient(90deg, #FFFFFF, var(--zv-cyan));
+      background: linear-gradient(90deg, #FFFFFF, var(--socler-cyan));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-transform: uppercase;
@@ -77,10 +77,10 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      background: var(--zv-surface);
+      background: var(--socler-surface);
       padding: 6px 14px;
       border-radius: 30px;
-      border: 1px solid var(--zv-border);
+      border: 1px solid var(--socler-border);
       backdrop-filter: blur(20px) saturate(150%);
       -webkit-backdrop-filter: blur(20px) saturate(150%);
       box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
@@ -90,25 +90,25 @@
       transition: all 0.5s ease;
     }
     .status-dot.secured { 
-      background: var(--zv-cyan); 
-      box-shadow: 0 0 12px var(--zv-cyan), 0 0 4px #FFF; 
+      background: var(--socler-cyan); 
+      box-shadow: 0 0 12px var(--socler-cyan), 0 0 4px #FFF; 
     }
     .status-dot.locked { 
-      background: var(--zv-danger); 
-      box-shadow: 0 0 12px var(--zv-danger); 
+      background: var(--socler-danger); 
+      box-shadow: 0 0 12px var(--socler-danger); 
       animation: pulseAlert 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
     }
     @keyframes pulseAlert {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.8); }
     }
-    .status-text { font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--zv-text-muted); }
+    .status-text { font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--socler-text-muted); }
 
     /* Liquid Glass Panels */
     .glass-panel {
       position: relative;
-      background: var(--zv-surface);
-      border: 1px solid var(--zv-border);
+      background: var(--socler-surface);
+      border: 1px solid var(--socler-border);
       border-radius: 24px;
       padding: 30px 24px;
       backdrop-filter: blur(40px) saturate(150%);
@@ -122,7 +122,7 @@
       width: 100%;
       background: rgba(0,0,0,0.4);
       border: 1px solid rgba(255,255,255,0.05);
-      color: var(--zv-text);
+      color: var(--socler-text);
       font-family: inherit;
       font-size: 14px;
       padding: 16px 20px;
@@ -161,13 +161,13 @@
       transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .btn-primary {
-      background: var(--zv-text);
-      color: var(--zv-bg);
+      background: var(--socler-text);
+      color: var(--socler-bg);
       border: none;
       box-shadow: 0 10px 30px rgba(255,255,255,0.1);
     }
     .btn-primary:hover { 
-      background: var(--zv-cyan); 
+      background: var(--socler-cyan); 
       box-shadow: 0 15px 40px rgba(0, 240, 255, 0.3);
       transform: translateY(-2px);
     }
@@ -179,9 +179,9 @@
     .space-y-2 > * + * { margin-top: 8px; }
 
     /* Typography */
-    .label { font-size: 10px; font-weight: 800; color: var(--zv-text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; padding-left: 4px; }
+    .label { font-size: 10px; font-weight: 800; color: var(--socler-text-muted); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; display: block; padding-left: 4px; }
     .title { font-size: 24px; font-weight: 300; letter-spacing: -1px; margin-bottom: 8px; text-align: center; }
-    .desc { font-size: 12px; color: var(--zv-text-muted); line-height: 1.6; text-align: center; font-weight: 400; }
+    .desc { font-size: 12px; color: var(--socler-text-muted); line-height: 1.6; text-align: center; font-weight: 400; }
 
     /* Screens */
     .screen {
@@ -221,7 +221,7 @@
       align-items: center; 
       padding: 16px; 
       border-radius: 16px;
-      background: var(--zv-surface);
+      background: var(--socler-surface);
       /* Using box-shadow instead of border to prevent Chrome overflow:hidden corner clipping bug */
       box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03);
       cursor: pointer;
@@ -257,12 +257,12 @@
     .item-card:hover .item-icon-wrapper {
       background: rgba(0, 240, 255, 0.1);
       border-color: rgba(0, 240, 255, 0.3);
-      color: var(--zv-cyan);
+      color: var(--socler-cyan);
     }
 
     .item-content { flex: 1; overflow: hidden; }
-    .item-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--zv-text); }
-    .item-sub { font-size: 11px; color: var(--zv-text-muted); font-weight: 400; }
+    .item-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--socler-text); }
+    .item-sub { font-size: 11px; color: var(--socler-text-muted); font-weight: 400; }
     
     .item-actions { display: flex; gap: 8px; opacity: 0; transform: translateX(10px); transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
     .item-card:hover .item-actions { opacity: 1; transform: translateX(0); }
@@ -270,7 +270,7 @@
     .icon-btn { 
       background: rgba(0,0,0,0.3); 
       border: 1px solid rgba(255,255,255,0.05); 
-      color: var(--zv-text-muted); 
+      color: var(--socler-text-muted); 
       cursor: pointer; 
       border-radius: 10px;
       width: 32px; height: 32px;
@@ -280,21 +280,21 @@
     .icon-btn svg { width: 14px; height: 14px; fill: currentColor; }
     .icon-btn:hover { 
       background: rgba(255,255,255,0.1); 
-      color: var(--zv-text);
+      color: var(--socler-text);
       transform: scale(1.1); 
     }
 
     .empty { 
       text-align: center; 
       padding: 80px 0; 
-      color: var(--zv-text-muted); 
+      color: var(--socler-text-muted); 
       font-size: 12px; 
       font-weight: 600;
       letter-spacing: 1px;
       display: flex; flex-direction: column; align-items: center; gap: 20px;
     }
     .empty svg { width: 64px; height: 64px; opacity: 0.1; }
-    .error-msg { color: var(--zv-danger); font-size: 11px; text-align: center; margin-top: 12px; display: none; font-weight: 700; letter-spacing: 1px; }
+    .error-msg { color: var(--socler-danger); font-size: 11px; text-align: center; margin-top: 12px; display: none; font-weight: 700; letter-spacing: 1px; }
 
     /* Modern Toast */
     .toast { 
@@ -302,7 +302,7 @@
       background: rgba(255,255,255,0.1); 
       border: 1px solid rgba(255,255,255,0.2);
       backdrop-filter: blur(20px);
-      color: var(--zv-text); 
+      color: var(--socler-text); 
       padding: 12px 24px; border-radius: 30px; 
       font-size: 11px; font-weight: 800; letter-spacing: 2px;
       opacity: 0; pointer-events: none; 
@@ -326,7 +326,7 @@
     .spinner {
       width: 60px; height: 60px;
       border: 2px solid rgba(0, 240, 255, 0.1);
-      border-top-color: var(--zv-cyan);
+      border-top-color: var(--socler-cyan);
       border-radius: 50%;
       animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
       box-shadow: 0 0 30px rgba(0,240,255,0.2);
@@ -339,7 +339,7 @@
     @keyframes spin { 100% { transform: rotate(360deg); } }
     .decrypt-text { 
       margin-top: 24px; font-family: 'ui-monospace', monospace; font-size: 11px; font-weight: 800; letter-spacing: 4px; 
-      color: var(--zv-cyan); text-shadow: 0 0 10px rgba(0,240,255,0.5);
+      color: var(--socler-cyan); text-shadow: 0 0 10px rgba(0,240,255,0.5);
       animation: pulseText 2s infinite alternate;
     }
     @keyframes pulseText { 0% { opacity: 0.5; } 100% { opacity: 1; } }
