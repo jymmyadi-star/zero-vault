@@ -80,7 +80,7 @@
 
 ### HIGH — Business Logic
 - `lib/key-rotation.ts`
-- `lib/password-generator.ts`
+- `lib/crypto/password-generator.ts`
 - `lib/vault-export.ts`
 - `lib/services/vault-service.ts`
 - `lib/consent-manager.ts`
@@ -88,7 +88,6 @@
 ### HIGH — UI Hooks & Auth
 - `hooks/useVaultAuth.ts`
 - `lib/hooks/useAutoLock.ts`
-- `lib/autofill-bridge.ts`
 
 ### HIGH — Browser Extension
 - `browser-extension/manifest.json`

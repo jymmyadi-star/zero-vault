@@ -12,27 +12,30 @@ import { hapticTouch } from '../lib/haptics';
 
 const { width, height } = Dimensions.get('window');
 
+function PinDot({ isActive, isError }: { isActive: boolean; isError: boolean }) {
+  const scaleAnim = useRef(new Animated.Value(isActive ? 1 : 0.7)).current;
+  const opacityAnim = useRef(new Animated.Value(isActive ? 1 : 0.6)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.spring(scaleAnim, { toValue: isActive ? 1 : 0.7, friction: 5, tension: 100, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: isActive ? 1 : 0.6, duration: 200, useNativeDriver: true })
+    ]).start();
+  }, [isActive, scaleAnim, opacityAnim]);
+
+  return (
+    <Animated.View style={[styles.pinDotContainer, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
+      <View style={[styles.pinDot, isActive ? (isError ? styles.pinDotError : styles.pinDotFilled) : styles.pinDotEmpty]} />
+    </Animated.View>
+  );
+}
+
 function PinDots({ length, max, isError }: { length: number; max: number; isError: boolean }) {
   return (
     <View style={styles.pinDots}>
-      {Array.from({ length: max }).map((_, i) => {
-        const isActive = i < length;
-        const scaleAnim = useRef(new Animated.Value(isActive ? 1 : 0.7)).current;
-        const opacityAnim = useRef(new Animated.Value(isActive ? 1 : 0.6)).current;
-
-        useEffect(() => {
-          Animated.parallel([
-            Animated.spring(scaleAnim, { toValue: isActive ? 1 : 0.7, friction: 5, tension: 100, useNativeDriver: true }),
-            Animated.timing(opacityAnim, { toValue: isActive ? 1 : 0.6, duration: 200, useNativeDriver: true })
-          ]).start();
-        }, [isActive]);
-
-        return (
-          <Animated.View key={i} style={[styles.pinDotContainer, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}>
-            <View style={[styles.pinDot, isActive ? (isError ? styles.pinDotError : styles.pinDotFilled) : styles.pinDotEmpty]} />
-          </Animated.View>
-        );
-      })}
+      {Array.from({ length: max }).map((_, i) => (
+        <PinDot key={i} isActive={i < length} isError={isError} />
+      ))}
     </View>
   );
 }

@@ -12,7 +12,7 @@
 
 import { getV2VaultItems, type V2VaultItem } from './services/vault-service-v2';
 import { useVaultStore } from './store/vault-store';
-import { randomBytes, encryptPayload, type EncryptedEnvelope } from './crypto/crypto-utils';
+import { randomBytes, encryptPayload, bytesToHex, type EncryptedEnvelope } from './crypto/crypto-utils';
 
 export interface ExportOptions {
   format: 'bitwarden-json' | 'csv';
@@ -133,7 +133,7 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
       const { deriveWithPBKDF2Async } = await import('./crypto/crypto-utils');
       const key = await deriveWithPBKDF2Async(options.password, salt, 600000, 32);
       const envelope = encryptPayload(exportData as unknown as Record<string, unknown>, key, { export_password_protected: true });
-      data = JSON.stringify({ salt: Buffer.from(salt).toString('hex'), envelope });
+      data = JSON.stringify({ salt: bytesToHex(salt), envelope });
       key.fill(0);
       pwBytes.fill(0);
     } else {
