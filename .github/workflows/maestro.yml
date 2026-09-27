@@ -36,10 +36,7 @@ jobs:
           disable-animations: true
           script: |
             echo "::group::Build debug APK"
-            cd android
-            chmod +x gradlew
-            bash gradlew assembleDebug --no-daemon
-            cd ..
+            ( cd android && chmod +x gradlew && bash gradlew assembleDebug --no-daemon )
             echo "::endgroup::"
 
             echo "::group::Install APK"
