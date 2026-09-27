@@ -1,0 +1,5 @@
+# Force LF line endings for shell scripts and the Gradle wrapper so they execute
+# correctly on Linux CI runners (a CRLF shebang yields "command not found" / 127).
+*.sh text eol=lf
+gradlew text eol=lf
+gradlew.bat text eol=crlf
