@@ -154,7 +154,7 @@ function renderItems(list: VaultItem[]): void {
     <div class="item-card">
       <div class="item-icon-wrapper">
         <!-- Minimal initial logic, can expand later -->
-        ${item.title.charAt(0).toUpperCase()}
+        ${escHtml(item.title.charAt(0).toUpperCase())}
       </div>
       <div class="item-content">
         <div class="item-title">${escHtml(item.title)}</div>
