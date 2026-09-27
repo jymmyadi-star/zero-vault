@@ -18,7 +18,7 @@ class AutofillOverlay {
 
   constructor() {
     this.host = document.createElement('div');
-    this.host.id = 'zv-autofill-root';
+    this.host.id = 'socler-autofill-root';
     this.host.style.cssText = `
       position: absolute;
       top: 0; left: 0; width: 0; height: 0;
@@ -32,11 +32,11 @@ class AutofillOverlay {
     const style = document.createElement('style');
     style.textContent = `
       :host {
-        --zv-cyan: #00F0FF;
-        --zv-bg: rgba(10, 10, 15, 0.85);
-        --zv-bg-hover: rgba(25, 25, 35, 0.95);
-        --zv-border: rgba(0, 240, 255, 0.2);
-        --zv-border-glow: rgba(0, 240, 255, 0.5);
+        --socler-cyan: #00F0FF;
+        --socler-bg: rgba(10, 10, 15, 0.85);
+        --socler-bg-hover: rgba(25, 25, 35, 0.95);
+        --socler-border: rgba(0, 240, 255, 0.2);
+        --socler-border-glow: rgba(0, 240, 255, 0.5);
         font-family: system-ui, -apple-system, sans-serif;
       }
       
@@ -53,13 +53,13 @@ class AutofillOverlay {
         width: 28px;
         height: 28px;
         border-radius: 8px;
-        background: var(--zv-bg);
-        border: 1px solid var(--zv-border);
+        background: var(--socler-bg);
+        border: 1px solid var(--socler-border);
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        color: var(--zv-cyan);
+        color: var(--socler-cyan);
         box-shadow: 0 4px 12px rgba(0,0,0,0.5);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -68,12 +68,12 @@ class AutofillOverlay {
       
       .icon-btn:hover {
         transform: scale(1.1);
-        border-color: var(--zv-border-glow);
+        border-color: var(--socler-border-glow);
         box-shadow: 0 0 15px rgba(0,240,255,0.3);
       }
       
       .icon-btn.active {
-        background: var(--zv-cyan);
+        background: var(--socler-cyan);
         color: #000;
         box-shadow: 0 0 20px rgba(0,240,255,0.6);
       }
@@ -86,7 +86,7 @@ class AutofillOverlay {
         max-height: 320px;
         overflow-y: auto;
         background: linear-gradient(145deg, rgba(20,20,25,0.9) 0%, rgba(10,10,15,0.95) 100%);
-        border: 1px solid var(--zv-border);
+        border: 1px solid var(--socler-border);
         border-radius: 12px;
         padding: 8px;
         box-shadow: 0 20px 40px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.1);
@@ -121,8 +121,8 @@ class AutofillOverlay {
       }
       
       .match-item:hover {
-        background: var(--zv-bg-hover);
-        border-color: var(--zv-border);
+        background: var(--socler-bg-hover);
+        border-color: var(--socler-border);
         transform: translateX(-4px);
       }
       
@@ -134,9 +134,9 @@ class AutofillOverlay {
         text-align: center;
         color: #FFF;
       }
-      .locked-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--zv-cyan); }
+      .locked-title { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: var(--socler-cyan); }
       .unlock-btn {
-        background: var(--zv-cyan);
+        background: var(--socler-cyan);
         color: #000;
         border: none;
         padding: 8px 16px;
