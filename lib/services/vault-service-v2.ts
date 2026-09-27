@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
 import { getV2Database, type V2Database } from '../db/database-v2';
 import { vaultItems } from '../db/schema-v2';
-import { encryptPayload, decryptPayload, type EncryptedEnvelope } from '../crypto/crypto-utils';
+import { encryptPayload, decryptPayload, randomBytes, bytesToHex, type EncryptedEnvelope } from '../crypto/crypto-utils';
 import { Logger } from '../logger';
 
 export interface V2VaultItem {
@@ -26,7 +26,7 @@ export async function createV2VaultItem(
   opts?: { folder?: string; favorite?: boolean; icon?: string; urlHint?: string },
 ): Promise<V2VaultItem> {
   const db = getV2Database();
-  const id = `vi-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id = `vi-${Date.now()}-${bytesToHex(randomBytes(6))}`;
   const envelope = encryptPayload(payload, cipherKey);
 
   const row = {

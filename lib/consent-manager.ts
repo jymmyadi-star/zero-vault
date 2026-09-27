@@ -34,12 +34,19 @@ async function getHmacKey(): Promise<string> {
     const { default: SecureStore } = await import('expo-secure-store');
     let key = await SecureStore.getItemAsync('socler_consent_hmac_key');
     if (!key) {
-      key = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `socler-consent-${Date.now()}-${Math.random()}`);
+      // CSPRNG-derived 256-bit key. Do NOT derive this from Math.random()/Date.now()
+      // — a predictable key would let an attacker forge GDPR consent records.
+      const randomBytes = await Crypto.getRandomBytesAsync(32);
+      key = Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      randomBytes.fill(0);
       await SecureStore.setItemAsync('socler_consent_hmac_key', key);
     }
     _hmacKey = key;
-  } catch {
-    _hmacKey = 'socler-fallback';
+  } catch (e) {
+    // Fail-closed: without a secure key we cannot provide tamper-evident consent
+    // records, so refuse rather than fall back to a forgeable constant.
+    Logger.error('[Consent] Failed to retrieve/generate consent HMAC key', e, { module: 'ConsentManager' });
+    throw new Error('Secure storage unavailable — cannot protect consent records');
   }
   return _hmacKey;
 }

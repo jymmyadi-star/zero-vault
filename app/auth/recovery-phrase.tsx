@@ -10,6 +10,7 @@ import { kv } from '@/lib/storage';
 import { Ionicons } from '@expo/vector-icons';
 import { hapticSuccess, hapticError } from '@/lib/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { randomBytes } from '@/lib/crypto/crypto-utils';
 
 export default function RecoveryPhraseScreen() {
   const router = useRouter();
@@ -35,8 +36,17 @@ export default function RecoveryPhraseScreen() {
   const startVerification = () => {
     if (words.length === 0) return;
     const indices = new Set<number>();
+    // CSPRNG + rejection sampling for unbiased, unpredictable word selection
+    // (Math.random would be predictable and slightly biased here).
+    const limit = Math.floor(0x100000000 / words.length) * words.length;
     while (indices.size < 3) {
-      indices.add(Math.floor(Math.random() * words.length));
+      const rand = randomBytes(4);
+      try {
+        const val = ((rand[0]! << 24) | (rand[1]! << 16) | (rand[2]! << 8) | rand[3]!) >>> 0;
+        if (val < limit) indices.add(val % words.length);
+      } finally {
+        rand.fill(0);
+      }
     }
     const sorted = Array.from(indices).sort((a, b) => a - b);
     setVerifyIndices(sorted);
