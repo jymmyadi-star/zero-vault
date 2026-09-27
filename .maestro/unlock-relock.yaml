@@ -1,0 +1,25 @@
+# Socler — lock / unlock cycle
+# Assumes the vault is already set up with PIN 12345678.
+appId: com.socler.app
+---
+- launchApp
+- assertVisible: "Passwords"
+
+# Open Settings → lock the vault. Adjust the tab/label selectors to the real UI.
+- tapOn: "Settings"
+# TODO: tap the actual "Lock Vault" control in Settings.
+# - tapOn: "Lock Vault"
+
+# Relaunch in locked state and unlock with the 8-digit PIN.
+- launchApp:
+    stopApp: true
+- tapOn: "1"
+- tapOn: "2"
+- tapOn: "3"
+- tapOn: "4"
+- tapOn: "5"
+- tapOn: "6"
+- tapOn: "7"
+- tapOn: "8"
+
+- assertVisible: "Passwords"

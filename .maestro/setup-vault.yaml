@@ -1,0 +1,44 @@
+# Socler — fresh-install vault setup flow
+# Requires a clean install (or --clear-state). Test PIN used throughout: 12345678
+appId: com.socler.app
+---
+- launchApp:
+    clearState: true
+
+# --- Onboarding (3 cinematic slides) ---
+- assertVisible: "ZERO KNOWLEDGE"
+- tapOn: "TAP TO PROCEED"
+- assertVisible: "THE PRIMORDIAL SEED"
+- tapOn: "TAP TO PROCEED"
+- assertVisible: "ABSOLUTE ISOLATION"
+- tapOn: "INITIATE GENESIS"
+
+# --- Recovery phrase: display + verify ---
+# The 24-word seed is shown, then the user must re-enter 3 randomly-selected
+# words. Automating the word re-entry requires extracting the words from the
+# screen (copyTextFrom) and typing the 3 requested indices — finalize against
+# a real device, since the requested indices are CSPRNG-selected.
+- assertVisible: "Verify Seed"
+# TODO: capture 24 words, then enter the 3 requested words here.
+# tapOn: "I'VE WRITTEN IT DOWN"   # adjust to the real confirm label
+
+# --- PIN setup (8-digit, entered twice) ---
+- tapOn: "1"
+- tapOn: "2"
+- tapOn: "3"
+- tapOn: "4"
+- tapOn: "5"
+- tapOn: "6"
+- tapOn: "7"
+- tapOn: "8"
+- tapOn: "1"
+- tapOn: "2"
+- tapOn: "3"
+- tapOn: "4"
+- tapOn: "5"
+- tapOn: "6"
+- tapOn: "7"
+- tapOn: "8"
+
+# --- Landed on the vault ---
+- assertVisible: "Passwords"
