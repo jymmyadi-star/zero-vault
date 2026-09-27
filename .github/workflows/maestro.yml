@@ -10,11 +10,12 @@ on:
       - 'hooks/**'
       - 'components/**'
       - '.maestro/**'
+      - '.github/workflows/maestro.yml'
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -23,13 +24,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Build debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
-
-      - name: Run Maestro flows on emulator
+      # ReactiveCircus/android-emulator-runner provisions the Android SDK,
+      # auto-accepts licenses, boots the emulator, and runs the script.
+      # (We do the Gradle build inside it so it runs against the provisioned SDK.)
+      - name: Build APK, install, and run Maestro on emulator
         uses: ReactiveCircus/android-emulator-runner@v2
         with:
           api-level: 34
@@ -37,10 +35,24 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
+            echo "::group::Build debug APK"
+            cd android
+            ./gradlew assembleDebug --no-daemon
+            cd ..
+            echo "::endgroup::"
+
+            echo "::group::Install APK"
             adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            echo "::endgroup::"
+
+            echo "::group::Install Maestro CLI"
             curl -fsSL "https://get.maestro.mobile.dev" | bash
             export PATH="$PATH:$HOME/.maestro/bin"
+            echo "::endgroup::"
+
+            echo "::group::Run Maestro flows"
             maestro test .maestro/smoke.yaml .maestro/unlock-relock.yaml
+            echo "::endgroup::"
 
       - name: Upload Maestro artifacts on failure
         if: failure()
