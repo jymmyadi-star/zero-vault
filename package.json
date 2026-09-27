@@ -17,6 +17,7 @@
     "lint": "expo lint",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:e2e:maestro": "maestro test .maestro/",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },

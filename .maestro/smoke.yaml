@@ -1,0 +1,18 @@
+# Socler — tab navigation smoke
+# Assumes unlocked vault. Verifies all four tabs render.
+appId: com.socler.app
+---
+- launchApp
+- assertVisible: "Passwords"
+
+- tapOn: "Seeds"
+- assertVisible: "Seeds"
+
+- tapOn: "Notes"
+- assertVisible: "Notes"
+
+- tapOn: "Settings"
+- assertVisible: "Settings"
+
+- tapOn: "Passwords"
+- assertVisible: "Passwords"
