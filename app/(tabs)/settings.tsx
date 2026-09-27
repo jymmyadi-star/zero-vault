@@ -15,7 +15,7 @@ import { hapticTouch, hapticSuccess, hapticWarning } from '../../lib/haptics';
 import { exportVault } from '../../lib/vault-export';
 import { rotateKeys } from '../../lib/key-rotation';
 
-const IDLE_TIMEOUT_KEY = 'zerovault_idle_timeout_minutes';
+const IDLE_TIMEOUT_KEY = 'socler_idle_timeout_minutes';
 const TIMEOUT_OPTIONS = [
   { label: '1 min', value: 1 },
   { label: '5 min', value: 5 },
@@ -30,7 +30,7 @@ export default function SettingsScreen() {
   const { lock, syncEnabled, syncStatus, lastSyncAt } = useVaultStore();
   const [identityLinked, setIdentityLinked] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(
-    kv.get('zerovault_biometric_enabled') === 'true',
+    kv.get('socler_biometric_enabled') === 'true',
   );
   const [autoLockMinutes, setAutoLockMinutes] = useState<number>(() => {
     const stored = kv.get(IDLE_TIMEOUT_KEY);
@@ -71,7 +71,7 @@ export default function SettingsScreen() {
               const Share = require('react-native').Share;
               await Share.share({
                 message: result.data,
-                title: `ZeroVault Export — ${result.itemCount} items`,
+                title: `Socler Export — ${result.itemCount} items`,
               });
               hapticSuccess();
             } catch (err: any) {
@@ -195,7 +195,7 @@ export default function SettingsScreen() {
         });
 
         if (result.success) {
-          kv.set('zerovault_biometric_enabled', 'true');
+          kv.set('socler_biometric_enabled', 'true');
           setBiometricEnabled(true);
           await hapticSuccess();
         }
@@ -203,7 +203,7 @@ export default function SettingsScreen() {
         Alert.alert('Error', 'Could not enable biometric authentication.');
       }
     } else {
-      kv.set('zerovault_biometric_enabled', 'false');
+      kv.set('socler_biometric_enabled', 'false');
       setBiometricEnabled(false);
     }
   };

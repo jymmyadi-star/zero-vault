@@ -10,7 +10,7 @@ export async function isIdentityLinked(): Promise<boolean> {
   if (!isSupabaseConfigured || !supabase) return false;
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    return !!(user && user.email && !user.email.endsWith('@anonymous.local'));
+    return !!(user && user.email && !user.email.endsWith('@socler.local'));
   } catch {
     return false;
   }
@@ -29,7 +29,7 @@ export async function upgradeToIdentity(
     throw new Error('No active session. Enable cloud sync first.');
   }
 
-  if (user.email && !user.email.endsWith('@anonymous.local')) {
+  if (user.email && !user.email.endsWith('@socler.local')) {
     return { success: true, needsVerification: false };
   }
 

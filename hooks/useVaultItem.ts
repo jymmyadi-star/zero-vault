@@ -16,6 +16,7 @@ export function useVaultItem(id: string | undefined) {
       const data = await getVaultItemById(id);
       data ? setItem(data) : setError('Decryption failed.');
     } catch (e: any) {
+      setItem(null);
       setError(e.message || 'Failed to load.');
     }
   }, [id]);

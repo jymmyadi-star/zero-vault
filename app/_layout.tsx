@@ -8,7 +8,6 @@ import { StatusBar } from 'expo-status-bar';
 import { DatabaseV2Provider } from '../lib/db/database-provider-v2';
 import { useVaultStore } from '../lib/store/vault-store';
 import { useAutoLock, resetActivityTimer } from '../lib/hooks/useAutoLock';
-import { enableAutofillBridge, disableAutofillBridge } from '../lib/autofill-bridge';
 import UnlockScreen from './unlock';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { SentinelGuide } from '../components/SentinelGuide';
@@ -41,7 +40,7 @@ function NavigationGate() {
   const router = useRouter();
   const status = useVaultStore((s) => s.status);
 
-  const isVerified = kv.get('zerovault_phrase_verified') === 'true';
+  const isVerified = kv.get('socler_phrase_verified') === 'true';
   const isAuth = segments[0] === 'auth';
   const needsRedirect = status === 'unlocked' && !isVerified && !isAuth;
 
@@ -65,14 +64,6 @@ export default function RootLayout() {
   const vaultKeyHex = useVaultStore((s) => s.vaultKeyHex);
 
   useAutoLock();
-
-  useEffect(() => {
-    if (vaultKeyHex) {
-      enableAutofillBridge(vaultKeyHex);
-    } else {
-      disableAutofillBridge();
-    }
-  }, [vaultKeyHex]);
 
   const transparentContent = { contentStyle: { backgroundColor: 'transparent' } };
 

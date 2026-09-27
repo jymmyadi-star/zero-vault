@@ -1,4 +1,4 @@
-# Terms of Service — Zero Vault
+# Terms of Service — Socler
 
 **Last Updated:** May 2026 | **Version:** 1.0  
 **Governing Law:** Romania / European Union
@@ -7,13 +7,13 @@
 
 ## 1. Acceptance of Terms
 
-By accessing or using Zero Vault ("the Application", "the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Application.
+By accessing or using Socler ("the Application", "the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Application.
 
 ---
 
 ## 2. Service Description
 
-Zero Vault is a **zero-knowledge encrypted credential manager and digital vault**. Its sole intended purpose is to allow you to securely store, organize, and access your passwords, seed phrases, and secure notes using client-side encryption.
+Socler is a **zero-knowledge encrypted credential manager and digital vault**. Its sole intended purpose is to allow you to securely store, organize, and access your passwords, seed phrases, and secure notes using client-side encryption.
 
 **The Application is NOT:**
 - A backup service, cloud storage provider, or data recovery service
@@ -31,7 +31,7 @@ Zero Vault is a **zero-knowledge encrypted credential manager and digital vault*
 
 ## 3. Zero-Knowledge Architecture — CRITICAL
 
-Zero Vault employs **client-side encryption** using XChaCha20-Poly1305 with keys derived via Argon2id from your PIN.
+Socler employs **client-side encryption** using XChaCha20-Poly1305 with keys derived via Argon2id from your PIN.
 
 **YOU ACKNOWLEDGE AND AGREE THAT:**
 
@@ -53,7 +53,7 @@ As the user, you are the **data controller** of all content you store in the App
 
 You agree that:
 - You will safeguard your recovery phrase, PIN, and device passcode
-- You will not share your recovery phrase with anyone, including persons claiming to represent Zero Vault or its developers
+- You will not share your recovery phrase with anyone, including persons claiming to represent Socler or its developers
 - You will not use the Application for any unlawful purpose, including storing credentials for unauthorized access to systems or accounts you do not own
 - You will not store content that infringes on the intellectual property rights of others
 - You are solely responsible for the accuracy and legality of the content you store
@@ -66,7 +66,7 @@ You agree that:
 
 The Application may allow you to store seed phrases and private keys for cryptocurrency wallets. You acknowledge that:
 
-- Zero Vault is NOT a cryptocurrency wallet, exchange, or financial service
+- Socler is NOT a cryptocurrency wallet, exchange, or financial service
 - We do NOT have access to your seed phrases or private keys
 - We are NOT responsible for any loss of cryptocurrency or digital assets resulting from lost recovery phrases, device failure, phishing attacks, malware, or any other cause
 - Storing cryptocurrency seed phrases or private keys is at your SOLE RISK
@@ -86,7 +86,7 @@ The Chrome browser extension is provided "AS IS". You acknowledge that:
 
 ## 7. Intellectual Property
 
-The Application, its codebase, design, user interface, documentation, and related materials ("Zero Vault IP") are the exclusive property of the developer. All rights reserved.
+The Application, its codebase, design, user interface, documentation, and related materials ("Socler IP") are the exclusive property of the developer. All rights reserved.
 
 User-generated content stored within the Application remains the property of the user, subject to the encryption described in Section 3. We claim no ownership of your stored content.
 
@@ -145,7 +145,7 @@ You agree to indemnify, defend, and hold harmless the developer from and against
 
 By using the Application, you explicitly acknowledge and consent to the following:
 
-> "I understand that Zero Vault uses zero-knowledge encryption. The developer cannot recover my data under any circumstances, including by court order, law enforcement request, or my own request. My recovery phrase is the only way to restore access to my data. If I lose my recovery phrase, my data is permanently lost."
+> "I understand that Socler uses zero-knowledge encryption. The developer cannot recover my data under any circumstances, including by court order, law enforcement request, or my own request. My recovery phrase is the only way to restore access to my data. If I lose my recovery phrase, my data is permanently lost."
 
 This acknowledgment is a material condition of your use of the Application.
 
@@ -163,9 +163,9 @@ The Application qualifies as "publicly available" software under Category 5, Par
 
 ## 13. Regulatory Status
 
-Zero Vault is NOT a medical device within the meaning of Regulation (EU) 2017/745 (MDR). It is a cryptocurrency wallet as defined by Regulation (EU) 2023/1114 (MiCA) only insofar as it stores private cryptographic keys on behalf of clients. It does not provide exchange services, custody services, or financial advice.
+Socler is NOT a medical device within the meaning of Regulation (EU) 2017/745 (MDR). It is a cryptocurrency wallet as defined by Regulation (EU) 2023/1114 (MiCA) only insofar as it stores private cryptographic keys on behalf of clients. It does not provide exchange services, custody services, or financial advice.
 
-Zero Vault falls within the scope of Regulation (EU) 2022/2555 (NIS2) only if classified as a provider of managed security services, which the developer does not concede given the zero-knowledge architecture where all security operations occur client-side.
+Socler falls within the scope of Regulation (EU) 2022/2555 (NIS2) only if classified as a provider of managed security services, which the developer does not concede given the zero-knowledge architecture where all security operations occur client-side.
 
 ---
 
@@ -191,7 +191,7 @@ We reserve the right to terminate or suspend your access to the Application for 
 
 ## 17. Contact
 
-For legal inquiries: **legal@zerovault.app**
+For legal inquiries: **legal@socler.app**
 
 ---
 

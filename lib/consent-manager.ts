@@ -32,14 +32,14 @@ async function getHmacKey(): Promise<string> {
   if (_hmacKey) return _hmacKey;
   try {
     const { default: SecureStore } = await import('expo-secure-store');
-    let key = await SecureStore.getItemAsync('zerovault_consent_hmac_key');
+    let key = await SecureStore.getItemAsync('socler_consent_hmac_key');
     if (!key) {
-      key = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `zerovault-consent-${Date.now()}-${Math.random()}`);
-      await SecureStore.setItemAsync('zerovault_consent_hmac_key', key);
+      key = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `socler-consent-${Date.now()}-${Math.random()}`);
+      await SecureStore.setItemAsync('socler_consent_hmac_key', key);
     }
     _hmacKey = key;
   } catch {
-    _hmacKey = 'zerovault-fallback';
+    _hmacKey = 'socler-fallback';
   }
   return _hmacKey;
 }
@@ -52,7 +52,7 @@ async function sign(payload: string): Promise<string> {
 }
 
 class ConsentManager {
-  private readonly STORAGE_KEY = 'zerovault_consent_history';
+  private readonly STORAGE_KEY = 'socler_consent_history';
 
   private async getHistory(): Promise<ConsentHistory> {
     const raw = kv.get(this.STORAGE_KEY);
@@ -132,12 +132,12 @@ class ConsentManager {
   }
 
   getAgeVerified(): boolean {
-    return kv.get('zerovault_age_verified') === 'true';
+    return kv.get('socler_age_verified') === 'true';
   }
 
   setAgeVerified(dob: string): void {
-    kv.set('zerovault_age_verified', 'true');
-    kv.set('zerovault_dob', dob);
+    kv.set('socler_age_verified', 'true');
+    kv.set('socler_dob', dob);
   }
 
   calculateAge(dob: string): number {

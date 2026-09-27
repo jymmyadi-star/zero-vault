@@ -5,14 +5,14 @@
  *   - Bitwarden JSON (importable into Bitwarden, Vaultwarden, compatible managers)
  *   - Generic CSV (name,url,username,password,notes,totp,folder)
  *
- * Zero Vault only exports decrypted data in-memory.
+ * Socler only exports decrypted data in-memory.
  * The export string is never written to disk by this module.
  * The caller is responsible for sharing/saving securely.
  */
 
 import { getV2VaultItems, type V2VaultItem } from './services/vault-service-v2';
 import { useVaultStore } from './store/vault-store';
-import { randomBytes, encryptPayload, type EncryptedEnvelope } from './crypto/crypto-utils';
+import { randomBytes, encryptPayload, bytesToHex, type EncryptedEnvelope } from './crypto/crypto-utils';
 
 export interface ExportOptions {
   format: 'bitwarden-json' | 'csv';
@@ -120,7 +120,7 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
       encrypted: !!options.password,
       folders: [],
       items: bitwardenItems,
-      _zerovault_export: {
+      _socler_export: {
         version: '1.0',
         exportedAt: new Date().toISOString(),
         itemCount: bitwardenItems.length,
@@ -133,7 +133,7 @@ export async function exportVault(options: ExportOptions): Promise<ExportResult>
       const { deriveWithPBKDF2Async } = await import('./crypto/crypto-utils');
       const key = await deriveWithPBKDF2Async(options.password, salt, 600000, 32);
       const envelope = encryptPayload(exportData as unknown as Record<string, unknown>, key, { export_password_protected: true });
-      data = JSON.stringify({ salt: Buffer.from(salt).toString('hex'), envelope });
+      data = JSON.stringify({ salt: bytesToHex(salt), envelope });
       key.fill(0);
       pwBytes.fill(0);
     } else {

@@ -1,14 +1,14 @@
 # Chrome Web Store Listing
 
 ## Title (max 132 chars)
-Zero Vault — Zero-Knowledge Password Manager
+Socler — Zero-Knowledge Password Manager
 
 ## Short description (max 132 chars)
 Encrypted, offline-first password manager with autofill. XChaCha20-Poly1305. No plaintext ever leaves your device.
 
 ## Description (max 16,000 chars)
 
-Zero Vault is a zero-knowledge password manager built for security above all else.
+Socler is a zero-knowledge password manager built for security above all else.
 
 ---CORE FEATURES---
 
@@ -29,7 +29,7 @@ Your vault works completely offline. No server required. All decryption happens 
 The content script automatically detects login forms and offers to fill credentials with one click. No manual copy-paste. Your clipboard is auto-cleared after 30 seconds.
 
 **Cross-Device Sync**
-End-to-end encrypted sync via a lightweight API server. Hash chain verification ensures data integrity. Anonymous authentication supported. WebSocket push for instant updates.
+End-to-end encrypted sync via Supabase Edge Functions. Hash chain verification ensures data integrity. Anonymous authentication supported. Automatic background sync keeps devices up to date.
 
 **Full Vault Management**
 - Search across all items
@@ -49,7 +49,7 @@ End-to-end encrypted sync via a lightweight API server. Hash chain verification 
 - Key Derivation: Argon2id (128MB, 6 passes, 4 parallelism)
 - Database: SQLCipher AES-256
 - Sync Integrity: HMAC-SHA256 hash chain
-- Protocol: REST + WebSocket
+- Protocol: REST (Supabase Edge Functions)
 - Format: Manifest V3
 
 ---SUPPORTED ITEM TYPES---
@@ -61,7 +61,7 @@ End-to-end encrypted sync via a lightweight API server. Hash chain verification 
 ---GETTING STARTED---
 
 1. Install the extension
-2. Click the Zero Vault icon
+2. Click the Socler icon
 3. Sign in anonymously
 4. Create a new vault or enter your recovery phrase
 5. Your vault syncs automatically
@@ -83,7 +83,7 @@ Productivity
 English (United States)
 
 ## Website
-https://github.com/yourusername/zero-vault
+https://github.com/yourusername/socler
 
 ## Screenshot captions
 1. "Vault popup — search and copy credentials"

@@ -37,7 +37,7 @@ const ctx = await esbuild.context({
     'process.env.NODE_ENV': JSON.stringify(watch ? 'development' : 'production'),
     'process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || ''),
     'process.env.EXPO_PUBLIC_API_URL': JSON.stringify(process.env.EXPO_PUBLIC_API_URL || ''),
-    'process.env.EXPO_PUBLIC_ZEROVAULT_API_URL': JSON.stringify(process.env.EXPO_PUBLIC_ZEROVAULT_API_URL || ''),
+    'process.env.EXPO_PUBLIC_SOCLER_API_URL': JSON.stringify(process.env.EXPO_PUBLIC_SOCLER_API_URL || ''),
   },
 });
 

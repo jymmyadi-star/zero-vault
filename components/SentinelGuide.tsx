@@ -20,7 +20,7 @@ import { TurturicaMascot } from './ui/TurturicaMascot';
 import { kv } from '../lib/storage';
 
 const { width, height } = Dimensions.get('window');
-const STORAGE_KEY = '@zerovault_copilot_seen';
+const STORAGE_KEY = '@socler_copilot_seen';
 
 const MISSIONS = {
   first_login: [
@@ -108,7 +108,7 @@ export function SentinelGuide() {
     const init = async () => {
       try {
         // Ensure the auth flow (Phrase Setup) is completed first
-        const isVerified = kv.get('zerovault_phrase_verified') === 'true';
+        const isVerified = kv.get('socler_phrase_verified') === 'true';
         if (!isVerified) {
           // If vault was purged or unverified, wipe the Mascot's memory so it can introduce itself again later
           await AsyncStorage.removeItem(STORAGE_KEY);

@@ -27,7 +27,7 @@ export default function RecoveryPhraseScreen() {
     if (tempMnemonic) {
       setWords(tempMnemonic.split(' '));
     } else {
-      kv.set('zerovault_phrase_verified', 'true');
+      kv.set('socler_phrase_verified', 'true');
       router.replace('/(tabs)');
     }
   }, [tempMnemonic]);
@@ -64,7 +64,7 @@ export default function RecoveryPhraseScreen() {
     await hapticSuccess();
     setError(null);
     
-    kv.set('zerovault_phrase_verified', 'true');
+    kv.set('socler_phrase_verified', 'true');
     setTempMnemonic(null);
     router.replace('/auth/vault-created');
   };

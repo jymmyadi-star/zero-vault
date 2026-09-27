@@ -49,7 +49,7 @@ export default function CreateSeedScreen() {
   useEffect(() => {
     const loadSeed = async () => {
       try {
-        const params = (globalThis as any).__zerovault_lastParams || {};
+        const params = (globalThis as any).__socler_lastParams || {};
         const id = params.editId as string;
         if (!id) return;
         const item = await getVaultItemById(id);

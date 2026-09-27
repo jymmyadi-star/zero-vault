@@ -1,53 +1,41 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createVaultItem } from '../vault-service';
-import { useVaultStore } from '../../store/vault-store';
 
-// Mock DB to capture what is actually being written
-const mockCreate = vi.fn();
-const mockWrite = vi.fn(async (cb) => cb());
+const { mockInsert } = vi.hoisted(() => ({ mockInsert: vi.fn() }));
 
-vi.mock('../../db', () => ({
-  getDatabase: () => ({
-    write: mockWrite,
-    get: (table: string) => {
-      if (table === 'vault_items') {
-        return {
-          create: (cb: (m: any) => void) => {
-            const m = { _raw: {} };
-            cb(m);
-            mockCreate(m);
-          },
-        };
-      }
-      return { create: vi.fn() };
-    },
+vi.mock('../../db/database-v2', () => ({
+  getV2Database: () => ({
+    insert: () => ({ values: mockInsert }),
+    select: () => ({ from: () => ({ where: () => Promise.resolve([]) }) }),
+    update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
+    delete: () => ({ where: () => Promise.resolve() }),
   }),
 }));
 
-// Mock sync to avoid triggering network logic in tests
 vi.mock('../../sync/index', () => ({
   onVaultItemChanged: async () => {},
 }));
 
+import { createVaultItem } from '../vault-service';
+import { useVaultStore } from '../../store/vault-store';
 import { SecureBuffer } from '../../crypto/secure-buffer';
 
 describe('OWASP MSTG-STORAGE-1: Data at Rest Encryption', () => {
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     useVaultStore.setState({
-      cipherKey: SecureBuffer.random(32), // Use static method instead of private constructor
+      cipherKey: SecureBuffer.random(32),
       status: 'unlocked',
     } as any);
   });
 
   it('never writes plaintext payloads to the database', async () => {
     const sensitivePayload = { username: 'testuser', password: 'SuperSecretPassword123!' };
-    
+
     await createVaultItem('password', 'My Bank', sensitivePayload as any);
 
-    expect(mockCreate).toHaveBeenCalledTimes(1);
-    const dbRecord = mockCreate.mock.calls[0]?.[0];
-    
+    expect(mockInsert).toHaveBeenCalledTimes(1);
+    const dbRecord = mockInsert.mock.calls[0]?.[0];
+
     expect(dbRecord).toBeDefined();
 
     // Verify MSTG-STORAGE-1 constraints
@@ -59,7 +47,7 @@ describe('OWASP MSTG-STORAGE-1: Data at Rest Encryption', () => {
     // 2. The payload MUST be stored as a ciphertext string.
     expect(dbRecord).toHaveProperty('payloadCiphertext');
     expect(typeof dbRecord?.payloadCiphertext).toBe('string');
-    
+
     // 3. Ensure it's a valid JSON envelope format from crypto-utils
     const envelope = JSON.parse(dbRecord?.payloadCiphertext || '{}');
     expect(envelope).toHaveProperty('iv');
@@ -69,14 +57,14 @@ describe('OWASP MSTG-STORAGE-1: Data at Rest Encryption', () => {
 
   it('rejects unencrypted creation if Vault is locked (Fail-Safe)', async () => {
     useVaultStore.setState({ cipherKey: null, status: 'locked' } as any);
-    
+
     const sensitivePayload = { content: 'Top secret diary' };
-    
+
     await expect(
-      createVaultItem('note', 'Diary', sensitivePayload)
-    ).rejects.toThrow('VAULT_LOCKED');
-    
+      createVaultItem('note', 'Diary', sensitivePayload),
+    ).rejects.toThrow('Vault is locked');
+
     // DB must not be written to if encryption fails
-    expect(mockWrite).not.toHaveBeenCalled();
+    expect(mockInsert).not.toHaveBeenCalled();
   });
 });

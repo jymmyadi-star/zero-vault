@@ -1,14 +1,14 @@
-# Privacy Policy — Zero Vault
+# Privacy Policy — Socler
 
 **Last Updated:** May 2026  
 **Data Controller:** Developer, Romania, EU  
-**Contact:** privacy@zerovault.app
+**Contact:** privacy@socler.app
 
 ---
 
 ## 1. Our Promise
 
-**Zero Vault is designed so that we cannot access your data.** Every password, seed phrase, and note you store is encrypted on your device using XChaCha20-Poly1305 before it ever leaves your phone. We never receive your encryption keys, PIN, or recovery phrase.
+**Socler is designed so that we cannot access your data.** Every password, seed phrase, and note you store is encrypted on your device using XChaCha20-Poly1305 before it ever leaves your phone. We never receive your encryption keys, PIN, or recovery phrase.
 
 **We cannot decrypt your data. We cannot recover your data. We cannot be compelled to produce your data.** This is not a policy choice — it is a mathematical property of our zero-knowledge architecture.
 
@@ -16,7 +16,7 @@
 
 ## 2. What We CANNOT Access (Zero-Knowledge Content)
 
-All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305 encryption with keys derived from your PIN via PBKDF2-HMAC-SHA512.
+All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305 encryption with keys derived from your PIN via Argon2id.
 
 **Under this architecture, we do NOT and CANNOT collect, access, or process:**
 - Your passwords, usernames, or login credentials
@@ -26,7 +26,7 @@ All content you store in the Application — passwords, seed phrases, notes, TOT
 - The URLs or services associated with your stored items
 - Your organizational folders, categories, or labels you create
 - Your recovery phrase (generated and stored on your device)
-- Your PIN (verified locally via PBKDF2-HMAC-SHA512, never transmitted)
+- Your PIN (verified locally via Argon2id, never transmitted)
 
 All such content is encrypted ciphertext to us — random data indistinguishable from noise.
 
@@ -43,7 +43,7 @@ All such content is encrypted ciphertext to us — random data indistinguishable
 - Encrypted vault data (ciphertext only — we cannot decrypt)
 - Encrypted metadata (ciphertext only)
 - Sync version vectors and hash chains for conflict resolution
-- WebSocket connection for real-time sync notifications
+- Periodic background polling for sync
 
 **Device Data (de-identified):**
 - App version and OS version (for compatibility and crash diagnostics)
@@ -88,7 +88,7 @@ Should any supervisory authority determine otherwise, any special category data 
 ## 6. Data Storage and Encryption
 
 **Architecture:**
-- **At rest (device):** XChaCha20-Poly1305, PBKDF2-HMAC-SHA512 key derivation, keys stored in hardware-backed secure storage
+- **At rest (device):** XChaCha20-Poly1305, Argon2id key derivation, keys stored in hardware-backed secure storage
 - **In transit:** TLS 1.3 for all network communications
 - **At rest (server):** Data is already ciphertext from client-side encryption — we apply no additional server-side encryption as the data is already cryptographically protected
 - **Memory safety:** SecureBuffer with zero-on-dispose for all sensitive plaintext during key operations
@@ -107,12 +107,12 @@ Should any supervisory authority determine otherwise, any special category data 
 
 | Right | Article | How to Exercise |
 |-------|---------|----------------|
-| Access | Art. 15 | Export your vault from within the Application. For account data: contact privacy@zerovault.app |
+| Access | Art. 15 | Export your vault from within the Application. For account data: contact privacy@socler.app |
 | Rectification | Art. 16 | Edit directly within the Application |
 | Erasure | Art. 17 | Delete items within the Application. For full account deletion: Settings → Delete Account |
-| Restriction | Art. 18 | Contact privacy@zerovault.app |
+| Restriction | Art. 18 | Contact privacy@socler.app |
 | Data Portability | Art. 20 | Export your vault from within the Application |
-| Objection | Art. 21 | Contact privacy@zerovault.app |
+| Objection | Art. 21 | Contact privacy@socler.app |
 | Withdraw Consent | Art. 7(3) | Toggle consent settings within the Application |
 
 **Important:** Under our zero-knowledge architecture, we cannot provide your vault content in response to subject access requests because we do not possess the decryption keys. Use the in-app export functionality to obtain your own data.
@@ -173,7 +173,7 @@ In the event of a personal data breach (GDPR Art. 33), we will notify the releva
 
 | Category | Implementation |
 |----------|---------------|
-| **Encryption** | XChaCha20-Poly1305 (RFC 8439), PBKDF2-HMAC-SHA512 key derivation |
+| **Encryption** | XChaCha20-Poly1305 (RFC 8439), Argon2id key derivation |
 | **Authentication** | PIN-based with biometric unlock (FaceID/TouchID) |
 | **Key management** | 256-bit random keys, BIP-39 mnemonic backup, no keys on server |
 | **Memory** | SecureBuffer zero-on-dispose, Result<T,E> safe API pattern |
@@ -208,7 +208,7 @@ Material changes will be notified through the Application at least 30 days in ad
 
 ## 16. Contact
 
-privacy@zerovault.app | Response within 72 hours
+privacy@socler.app | Response within 72 hours
 
 ---
 

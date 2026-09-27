@@ -1,5 +1,5 @@
 import { eq, asc } from 'drizzle-orm';
-import { getV2Database } from '../db/database-provider-v2';
+import { getV2Database } from '../db/database-v2';
 import { syncBacklog } from '../db/schema-v2';
 import { Logger } from '../logger';
 
@@ -8,7 +8,7 @@ const MAX_BACKLOG_SIZE = 5000;
 async function getCurrentKeyEpoch(): Promise<number> {
   try {
     const { SecureStore } = require('expo-secure-store');
-    const epoch = await SecureStore.getItemAsync('zerovault_key_epoch_v3');
+    const epoch = await SecureStore.getItemAsync('socler_key_epoch_v3');
     return epoch ? parseInt(epoch, 10) : 0;
   } catch { return 0; }
 }
@@ -56,7 +56,7 @@ export async function enqueueToBacklogV2(
       createdAt: Date.now(),
     });
   } catch (err: any) {
-    Logger.error('[Sync V2] Failed to enqueue to backlog', { module: 'SyncEngineV2', error: err.message });
+    Logger.error('[Sync V2] Failed to enqueue to backlog', err, { module: 'SyncEngineV2' });
   }
 }
 

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions, Platform, Switch } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,7 @@ export default function CookieConsentScreen() {
   const handleAccept = () => {
     if (analytics) consentManager.grant('analytics', GDPR.PRIVACY_POLICY.current_version);
     if (crash) consentManager.grant('crash_reporting', GDPR.PRIVACY_POLICY.current_version);
-    kv.set('zerovault_cookie_consent', 'true');
+    kv.set('socler_cookie_consent', 'true');
     hapticSuccess();
     router.back();
   };
@@ -26,7 +26,7 @@ export default function CookieConsentScreen() {
   const handleReject = () => {
     consentManager.withdraw('analytics');
     consentManager.withdraw('crash_reporting');
-    kv.set('zerovault_cookie_consent', 'true');
+    kv.set('socler_cookie_consent', 'true');
     hapticSuccess();
     router.back();
   };

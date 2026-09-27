@@ -1,12 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SyncPush, drainBacklog } from '../push';
+import { drainBacklog } from '../push';
 import * as pullModule from '../pull';
 import * as apiClientModule from '../api-client';
 import { useVaultStore } from '../../store/vault-store';
 
-vi.mock('../../db', () => {
-  const dbWrite = vi.fn(async (cb) => cb());
-  
+vi.mock('../../db/database-v2', () => {
   const mockRecord = {
     id: 'backlog-1',
     sequence: 1,
@@ -14,25 +12,29 @@ vi.mock('../../db', () => {
     operation: 'INSERT',
     payloadCiphertext: '{"envelope":{},"wrappedDek":{}}',
     hlc: '2024-01-01T00:00:00Z',
-    update: vi.fn(),
-    markAsDeleted: vi.fn(),
   };
 
-  return {
-    getDatabase: () => ({
-      write: dbWrite,
-      get: (table: string) => ({
-        query: () => ({
-          fetch: () => Promise.resolve(table === 'sync_backlog' ? [mockRecord] : []),
-        }),
-        find: () => Promise.resolve(mockRecord),
+  const db = {
+    select: () => ({
+      from: () => ({
+        where: () => Promise.resolve([]),
+        orderBy: () => ({ limit: () => Promise.resolve([mockRecord]) }),
       }),
     }),
+    insert: () => ({ values: () => Promise.resolve() }),
+    update: () => ({ set: () => ({ where: () => Promise.resolve() }) }),
+    delete: () => ({ where: () => Promise.resolve() }),
   };
+
+  return { getV2Database: () => db };
 });
 
 vi.mock('../../network-status', () => ({
   getIsOnline: () => true,
+}));
+
+vi.mock('../../supabase', () => ({
+  supabase: null,
 }));
 
 describe('SyncPush - Drain Backlog Rebase Logic', () => {
@@ -49,7 +51,7 @@ describe('SyncPush - Drain Backlog Rebase Logic', () => {
     const pushSpy = vi.spyOn(apiClientModule.apiClient, 'push')
       .mockRejectedValueOnce(new Error('Server rejected: HASH_CHAIN_CONFLICT'))
       .mockResolvedValueOnce({ accepted: 1, rejected: 0 });
-    
+
     // We mock pullChanges to resolve successfully
     const pullSpy = vi.spyOn(pullModule, 'pullChanges').mockResolvedValue(undefined);
 

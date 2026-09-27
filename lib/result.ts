@@ -1,8 +1,8 @@
 /**
  * Result<T, E> — Rust-style error handling for TypeScript
  *
- * Elimină string matching în try/catch și forțează tratarea erorilor.
- * Patternul: fiecare funcție returnează Result<Succes, Eroare>
+ * Eliminates string matching in try/catch and forces error handling.
+ * Pattern: every function returns Result<Success, Error>
  */
 
 export type Result<T, E = Error> = Ok<T> | Err<E>;

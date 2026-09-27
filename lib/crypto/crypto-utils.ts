@@ -136,8 +136,8 @@ export function computeSyncSignature(
 }
 
 export function deriveSignKey(masterKey: Uint8Array): Uint8Array {
-  const info = new TextEncoder().encode('zerovault-sync-sign-v1');
-  const salt = sha256(new TextEncoder().encode('zerovault-sign-salt-v1'));
+  const info = new TextEncoder().encode('socler-sync-sign-v1');
+  const salt = sha256(new TextEncoder().encode('socler-sign-salt-v1'));
   return hkdf(sha256, masterKey, salt, info, 32);
 }
 
@@ -145,9 +145,9 @@ export async function deriveWithArgon2(
   password: string,
   salt: Uint8Array,
   {
-    timeCost = 6,
-    memoryCost = 131072,
-    parallelism = 4,
+    timeCost,
+    memoryCost,
+    parallelism,
     hashLength = 32,
   }: {
     timeCost?: number;
@@ -156,21 +156,28 @@ export async function deriveWithArgon2(
     hashLength?: number;
   } = {},
 ): Promise<Uint8Array> {
+  // Production: 128 MiB / 6 passes / 4 lanes (memory-hard).
+  // Development: 1 MiB / 1 pass / 1 lane to avoid freezing the Hermes/JS
+  // thread on emulators during local testing.
+  const isDev = (globalThis as any).__DEV__ === true;
+  const effectiveTimeCost = timeCost ?? (isDev ? 1 : 6);
+  const effectiveMemoryCost = memoryCost ?? (isDev ? 1024 : 131072);
+  const effectiveParallelism = parallelism ?? (isDev ? 1 : 4);
+
   try {
-    const { argon2id } = await import('argon2');
-    // @ts-expect-error argon2 package types are incomplete for argon2id.hash
-    const result = await argon2id.hash(password, {
-      salt: Buffer.from(salt),
-      timeCost,
-      memoryCost,
-      parallelism,
+    const { default: argon2 } = await import('react-native-argon2');
+    const result = await argon2(password, bytesToHex(salt), {
+      iterations: effectiveTimeCost,
+      memory: effectiveMemoryCost,
+      parallelism: effectiveParallelism,
       hashLength,
-      raw: true,
+      mode: 'argon2id',
+      saltEncoding: 'hex',
     });
-    return new Uint8Array(result);
+    return hexToBytes(result.rawHash);
   } catch (err) {
     const fbErr = err instanceof Error ? err.message : String(err);
-    throw new Error(`ARGON2_UNAVAILABLE: Argon2id is required for vault key derivation but could not be loaded. Reason: ${fbErr}. Ensure 'argon2' is installed and the native module is linked.`);
+    throw new Error(`ARGON2_UNAVAILABLE: Argon2id is required for vault key derivation but could not be loaded. Reason: ${fbErr}. Ensure 'react-native-argon2' is installed and the native module is linked.`);
   }
 }
 
@@ -223,7 +230,7 @@ export function deriveWithHKDF(masterKey: Uint8Array, info: string, length = 32)
 export { Buffer };
 
 export function derivePairingId(seed: Uint8Array): string {
-  const info = new TextEncoder().encode('zerovault-pairing-v1');
+  const info = new TextEncoder().encode('socler-pairing-v1');
   const raw = hkdf(sha256, seed, new Uint8Array(0), info, 10);
   const hex = bytesToHex(raw);
   raw.fill(0);
@@ -232,8 +239,8 @@ export function derivePairingId(seed: Uint8Array): string {
 
 export function deriveDeviceCredentials(pairingIdHex: string): { email: string; password: string } {
   const pairingId = hexToBytes(pairingIdHex);
-  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('zerovault-auth-pw-v1'), 32);
-  const email = `zk_${pairingIdHex.slice(0, 16)}@zerovault.local`;
+  const pw = hkdf(sha256, pairingId, new Uint8Array(0), new TextEncoder().encode('socler-auth-pw-v1'), 32);
+  const email = `zk_${pairingIdHex.slice(0, 16)}@socler.local`;
   const password = bytesToHex(pw);
   pw.fill(0);
   return { email, password };

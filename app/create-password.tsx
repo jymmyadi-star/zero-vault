@@ -48,7 +48,7 @@ export default function CreatePasswordScreen() {
 
   useEffect(() => {
     const loadEditItem = async () => {
-      const params = (globalThis as any).__zerovault_lastParams || {};
+      const params = (globalThis as any).__socler_lastParams || {};
       const id = params.editId as string;
       if (!id) return;
 

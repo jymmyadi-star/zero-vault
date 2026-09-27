@@ -53,7 +53,7 @@ const QuickActionBtn = ({ action, size }: { action: any; size: number }) => {
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       onPress={() => {
-        (globalThis as any).__zerovault_lastParams = null;
+        (globalThis as any).__socler_lastParams = null;
         router.push(action.route as any);
       }}
       style={{ width: size, height: size }}
@@ -206,7 +206,7 @@ export default function DashboardScreen() {
   );
 
   const handlePress = (item: VaultItemMetadata) => {
-    (globalThis as any).__zerovault_lastParams = { editId: item.id };
+    (globalThis as any).__socler_lastParams = { editId: item.id };
     router.push({ pathname: '/item/[id]', params: { id: item.id } });
   };
 
@@ -310,7 +310,7 @@ export default function DashboardScreen() {
                 <TouchableOpacity 
                   style={[styles.primaryBtn, { borderWidth: 1, borderColor: '#FFFFFF', backgroundColor: 'transparent' }]}
                   onPress={() => {
-                    (globalThis as any).__zerovault_lastParams = null;
+                    (globalThis as any).__socler_lastParams = null;
                     router.push('/create-password');
                   }}
                 >

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Zero Vault",
+  "name": "Socler",
   "version": "1.0.0",
   "description": "Zero-knowledge password manager with XChaCha20-Poly1305 encryption. Autofill, sync, and vault access from your browser.",
   "icons": {
@@ -10,7 +10,7 @@
   },
   "action": {
     "default_popup": "popup/index.html",
-    "default_title": "Zero Vault"
+    "default_title": "Socler"
   },
   "permissions": [
     "storage",
@@ -45,6 +45,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'none'; base-uri 'self'; default-src 'none'; connect-src https://ipmlypfufuntffgttldl.supabase.co wss://ipmlypfufuntffgttldl.supabase.co http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* http://192.168.100.44:* ws://192.168.100.44:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'none'; base-uri 'self'; default-src 'none'; connect-src https://ipmlypfufuntffgttldl.supabase.co wss://ipmlypfufuntffgttldl.supabase.co http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:* http://192.168.100.44:* ws://192.168.100.44:*; style-src 'self' 'unsafe-inline'; img-src 'self' data:"
   }
 }
