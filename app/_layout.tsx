@@ -36,24 +36,34 @@ function PrivacyScreen() {
   );
 }
 
+const ONBOARDING_ROUTES = new Set(['terms', 'age-verification', 'cookie-consent']);
+
 function NavigationGate() {
   const segments = useSegments();
   const router = useRouter();
   const status = useVaultStore((s) => s.status);
 
   const isVerified = kv.get('socler_phrase_verified') === 'true';
+  const isTermsAccepted = kv.get('socler_terms_accepted') === 'true';
   const isAuth = segments[0] === 'auth';
-  const needsRedirect = status === 'unlocked' && !isVerified && !isAuth;
+  const isOnboarding = ONBOARDING_ROUTES.has(segments[0] ?? '');
+
+  const needsPhraseRedirect = status === 'unlocked' && !isVerified && !isAuth;
+  const needsTermsRedirect = status === 'unlocked' && !isTermsAccepted && !isOnboarding && !isAuth;
 
   useEffect(() => {
-    if (needsRedirect) {
+    if (needsPhraseRedirect) {
       setTimeout(() => {
         router.replace('/auth/phrase-intro');
       }, 0);
+    } else if (needsTermsRedirect) {
+      setTimeout(() => {
+        router.replace('/terms');
+      }, 0);
     }
-  }, [needsRedirect]);
+  }, [needsPhraseRedirect, needsTermsRedirect]);
 
-  if (needsRedirect) {
+  if (needsPhraseRedirect || needsTermsRedirect) {
     return <View style={[StyleSheet.absoluteFillObject, { backgroundColor: '#000000', zIndex: 99999 }]} />;
   }
 
