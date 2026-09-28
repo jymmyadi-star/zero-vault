@@ -10,7 +10,7 @@ import { hapticTouch, hapticSuccess, hapticWarning } from '../lib/haptics';
 
 const { width, height } = Dimensions.get('window');
 
-export default function TermsScreen() {
+export default function TermsScreen({ onAccepted }: { onAccepted?: () => void }) {
   const router = useRouter();
   const { mode } = useLocalSearchParams<{ mode?: string }>();
   const isViewMode = mode === 'view';
@@ -28,7 +28,11 @@ export default function TermsScreen() {
     consentManager.grant('terms_of_use', '1.0.0');
     consentManager.grant('privacy_policy', GDPR.PRIVACY_POLICY.current_version);
     kv.set('socler_terms_accepted', 'true');
-    router.replace('/(tabs)');
+    if (onAccepted) {
+      onAccepted();
+    } else {
+      router.replace('/(tabs)');
+    }
   };
 
   return (
