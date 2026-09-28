@@ -45,13 +45,8 @@ All such content is encrypted ciphertext to us — random data indistinguishable
 - Sync version vectors and hash chains for conflict resolution
 - Periodic background polling for sync
 
-**Device Data (de-identified):**
-- App version and OS version (for compatibility and crash diagnostics)
-- Language preference
-
-**Diagnostic Data (optional, opt-in only):**
-- Anonymous crash reports (if you opt in via device settings)
-- We NEVER link diagnostic data to your vault content
+**Hosting Data (processed by our hosting provider for security):**
+- Standard server access logs (IP address, user agent) collected by Supabase
 
 ---
 
@@ -76,8 +71,7 @@ All such content is encrypted ciphertext to us — random data indistinguishable
 | Encrypted sync data (ciphertext) | Art. 6(1)(b) — Contractual necessity (to provide synchronization) |
 | Anonymous user identifier | Art. 6(1)(b) — Contractual necessity (authentication) |
 | Email address (if provided) | Art. 6(1)(a) — Explicit consent |
-| Diagnostic data (if opted in) | Art. 6(1)(a) — Explicit consent |
-| App version, OS version | Art. 6(1)(f) — Legitimate interest (compatibility, security) |
+| Hosting access logs | Art. 6(1)(f) — Legitimate interest (security, abuse prevention) |
 
 **Regarding the encrypted content:** As established above, we process only ciphertext. Under GDPR Art. 4(1), "personal data" means "any information relating to an identified or identifiable natural person." Encrypted ciphertext on our servers relates to no identifiable person without the decryption keys that we do not possess. The content of your vault, from our perspective as a blind custodian, is not personal data we can process.
 
@@ -98,7 +92,7 @@ Should any supervisory authority determine otherwise, any special category data 
 **Retention:**
 - Encrypted vault data: Retained for the duration of your account
 - Deleted items: Permanently removed from servers within 24 hours
-- Account deletion: All associated encrypted data removed within 30 days
+- Account deletion: All associated encrypted data removed within 30 days of a deletion request (contact privacy@socler.app)
 - Sync logs and hash chains: Retained for 7 days for conflict resolution
 
 ---
@@ -109,7 +103,7 @@ Should any supervisory authority determine otherwise, any special category data 
 |-------|---------|----------------|
 | Access | Art. 15 | Export your vault from within the Application. For account data: contact privacy@socler.app |
 | Rectification | Art. 16 | Edit directly within the Application |
-| Erasure | Art. 17 | Delete items within the Application. For full account deletion: Settings → Delete Account |
+| Erasure | Art. 17 | Delete items within the Application, or purge your local vault. For removal of server-side data, contact privacy@socler.app |
 | Restriction | Art. 18 | Contact privacy@socler.app |
 | Data Portability | Art. 20 | Export your vault from within the Application |
 | Objection | Art. 21 | Contact privacy@socler.app |
@@ -134,8 +128,6 @@ We will respond to all requests within 30 days as required by GDPR Art. 12(3).
 | Processor | Purpose | Data Accessed |
 |-----------|---------|--------------|
 | **Supabase** (EU) | Encrypted sync storage | Ciphertext only |
-| **Upstash** (EU) | Rate limiting, cache | Connection metadata only |
-| **Sentry** (optional, opt-in) | Crash reporting | Anonymous crash data, no PII |
 
 All processors are contractually bound (Data Processing Agreements under Art. 28) to process data only per our instructions and in compliance with GDPR.
 
@@ -177,7 +169,7 @@ In the event of a personal data breach (GDPR Art. 33), we will notify the releva
 | **Authentication** | PIN-based with biometric unlock (FaceID/TouchID) |
 | **Key management** | 256-bit random keys, BIP-39 mnemonic backup, no keys on server |
 | **Memory** | SecureBuffer zero-on-dispose, Result<T,E> safe API pattern |
-| **Transport** | TLS 1.3, certificate pinning |
+| **Transport** | TLS 1.3 |
 | **Sync** | Hash-chain verified sync log, tamper-evident data integrity |
 | **Server** | Rate limiting, input validation, dependency scanning, access logging |
 | **Development** | Static analysis, code review, dependency audit |
