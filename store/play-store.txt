@@ -4,7 +4,7 @@
 Socler — Zero-Knowledge Password Manager
 
 ## Short description (80 chars)
-Encrypted password manager. XChaCha20-Poly1305. Offline-first. Autofill. No tracking.
+Encrypted password manager. XChaCha20-Poly1305. Offline-first. No tracking.
 
 ## Full description (4000 chars)
 
@@ -27,9 +27,9 @@ Most password managers decrypt your data on their servers. Socler never does. Yo
 
 Your vault works without any server. All encryption and decryption happens locally on your device. Enable cloud sync only when you need cross-device access.
 
-**ANDROID AUTOFILL**
+**QUICK COPY & FILL**
 
-Fill passwords in any app or browser with Android's native Autofill Framework. Automatic detection of login fields. No accessibility services — the secure API.
+Copy any username or password to the clipboard with one tap, then paste it into any app or browser. The clipboard is automatically cleared after 30 seconds so your secrets never linger on the pasteboard.
 
 **PRIVACY BY DEFAULT**
 
@@ -65,7 +65,7 @@ Socler is true zero-knowledge. If you forget your Master PIN and lose your 24-wo
 Productivity
 
 ## Tags
-password manager, security, encryption, privacy, autofill
+password manager, security, encryption, privacy
 
 ## Content rating
 Everyone
@@ -82,7 +82,7 @@ Show: dark cyberpunk UI with vault rings, PIN dots, and the text "SOCLER — Zer
 ## Screenshots (min 2, max 8)
 1. Dashboard with vault rings
 2. Password detail with TOTP code
-3. Autofill in browser
+3. Copy credentials to clipboard
 4. Recovery phrase setup
 5. Settings with sync toggle
 6. Import vault screen
