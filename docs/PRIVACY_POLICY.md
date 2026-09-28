@@ -16,7 +16,7 @@
 
 ## 2. What We CANNOT Access (Zero-Knowledge Content)
 
-All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305 encryption with keys derived from your PIN via Argon2id.
+All content you store in the Application — passwords, seed phrases, notes, TOTP secrets, metadata you create — is encrypted on your device before transmission using XChaCha20-Poly1305. Your **Master Key** is derived locally from your PIN via Argon2id (memory-hard) and **never leaves your device**. All sub-keys (vault, cipher, and signing keys) are derived from this Master Key on-device.
 
 **Under this architecture, we do NOT and CANNOT collect, access, or process:**
 - Your passwords, usernames, or login credentials

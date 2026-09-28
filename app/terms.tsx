@@ -121,7 +121,7 @@ export default function TermsScreen() {
           <View style={[styles.checkbox, tick2 && styles.checkboxOn]}>
             {tick2 && <Ionicons name="checkmark" size={12} color="#020204" />}
           </View>
-          <Text style={styles.checkLabel}>I understand Socler is AS-IS with ZERO liability for data loss.</Text>
+          <Text style={styles.checkLabel}>I understand that if I lose my Master PIN and recovery phrase, my data is PERMANENTLY unrecoverable — Socler cannot reset or recover it.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.checkRow} onPress={() => { hapticTouch(); setTick3(!tick3); }} activeOpacity={0.7}>
