@@ -120,8 +120,8 @@ export default function VaultCreatedScreen() {
           <View style={styles.statsBox}>
             <View style={styles.statRow}>
               <Ionicons name="key" size={14} color="#00F0FF" />
-              <Text style={styles.statText}>LOCAL ENCLAVE</Text>
-              <Text style={styles.statValue}>ONLINE</Text>
+              <Text style={styles.statText}>SECURE ENCLAVE</Text>
+              <Text style={styles.statValue}>ACTIVE</Text>
             </View>
             <View style={styles.statRow}>
               <Ionicons name="lock-closed" size={14} color="#00F0FF" />
