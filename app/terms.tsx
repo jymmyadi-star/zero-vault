@@ -28,7 +28,7 @@ export default function TermsScreen() {
     consentManager.grant('terms_of_use', '1.0.0');
     consentManager.grant('privacy_policy', GDPR.PRIVACY_POLICY.current_version);
     kv.set('socler_terms_accepted', 'true');
-    router.replace('/unlock');
+    router.replace('/(tabs)');
   };
 
   return (
