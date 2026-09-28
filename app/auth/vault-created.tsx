@@ -113,7 +113,7 @@ export default function VaultCreatedScreen() {
         <Animated.View style={[styles.textBlock, textStyle]}>
           <Text style={styles.title}>VAULT SECURED</Text>
           <Text style={styles.subtitle}>
-            AES-256 ENCRYPTION ACTIVE.{'\n'}
+            XCHACHA20-POLY1305 ENCRYPTION ACTIVE.{'\n'}
             NO DATA LEAVES YOUR DEVICE.
           </Text>
 

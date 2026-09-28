@@ -158,7 +158,7 @@ export default function ChangePinScreen() {
               </View>
 
               <Text style={styles.sectionSubtitle}>
-                Configure a new secure Master Password. This password derives the AES-256 keys. Do not forget it.
+                Configure a new secure Master Password. This password derives your Master Key via Argon2id, which then derives your encryption keys. Do not forget it.
               </Text>
 
               <InputPod
