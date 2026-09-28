@@ -10,6 +10,7 @@ import { DatabaseV2Provider } from '../lib/db/database-provider-v2';
 import { useVaultStore } from '../lib/store/vault-store';
 import { useAutoLock, resetActivityTimer } from '../lib/hooks/useAutoLock';
 import UnlockScreen from './unlock';
+import TermsScreen from './terms';
 import { AmbientBackground } from '../components/AmbientBackground';
 import { SentinelGuide } from '../components/SentinelGuide';
 import { TurturicaMascot } from '../components/ui/TurturicaMascot';
@@ -73,6 +74,7 @@ function NavigationGate() {
 export default function RootLayout() {
   const status = useVaultStore((s) => s.status);
   const vaultKeyHex = useVaultStore((s) => s.vaultKeyHex);
+  const [termsEpoch, setTermsEpoch] = useState(0);
 
   useAutoLock();
 
@@ -90,6 +92,20 @@ export default function RootLayout() {
   }, []);
 
   const transparentContent = { contentStyle: { backgroundColor: 'transparent' } };
+
+  // Show the Terms of Use FIRST on a fresh install, before vault setup.
+  if (status === 'setup_required' && kv.get('socler_terms_accepted') !== 'true') {
+    return (
+      <ThemeProvider value={DarkTheme}>
+        <View style={{ flex: 1, backgroundColor: '#000000' }}>
+          <AmbientBackground />
+          <StatusBar style="light" />
+          <TermsScreen onAccepted={() => setTermsEpoch((e) => e + 1)} />
+          <PrivacyScreen />
+        </View>
+      </ThemeProvider>
+    );
+  }
 
   if (status === 'loading' || status === 'locked' || status === 'setup_required') {
     return (
