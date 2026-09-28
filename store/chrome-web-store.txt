@@ -23,10 +23,10 @@ Your vault works completely offline. No server required. All decryption happens 
 - Argon2id key derivation (128MB / 6 passes) for brute-force resistance
 - HKDF-SHA256 sub-key derivation
 - HMAC-SHA256 hash chain for sync integrity verification
-- SQLCipher AES-256 local database encryption
+- Encrypted local storage (XChaCha20-Poly1305)
 
 **Autofill on Every Website**
-The content script automatically detects login forms and offers to fill credentials with one click. No manual copy-paste. Your clipboard is auto-cleared after 30 seconds.
+The content script automatically detects login forms and offers to fill credentials with one click. No manual copy-paste.
 
 **Cross-Device Sync**
 End-to-end encrypted sync via Supabase Edge Functions. Hash chain verification ensures data integrity. Anonymous authentication supported. Automatic background sync keeps devices up to date.
@@ -40,21 +40,20 @@ End-to-end encrypted sync via Supabase Edge Functions. Hash chain verification e
 **Privacy by Design**
 - No analytics, no tracking, no telemetry
 - GDPR compliant (DPIA, ROPA, right to erasure)
-- Consent management built-in
 - Open-source cryptographic stack
 
 ---TECHNICAL SPECIFICATIONS---
 
 - Encryption: XChaCha20-Poly1305
 - Key Derivation: Argon2id (128MB, 6 passes, 4 parallelism)
-- Database: SQLCipher AES-256
+- Storage: Encrypted browser storage (XChaCha20-Poly1305)
 - Sync Integrity: HMAC-SHA256 hash chain
 - Protocol: REST (Supabase Edge Functions)
 - Format: Manifest V3
 
 ---SUPPORTED ITEM TYPES---
 
-- Passwords (with TOTP 2FA codes)
+- Passwords
 - Seed phrases (BIP39 recovery)
 - Secure notes
 
@@ -62,7 +61,7 @@ End-to-end encrypted sync via Supabase Edge Functions. Hash chain verification e
 
 1. Install the extension
 2. Click the Socler icon
-3. Sign in anonymously
+3. Pair with your mobile vault
 4. Create a new vault or enter your recovery phrase
 5. Your vault syncs automatically
 
