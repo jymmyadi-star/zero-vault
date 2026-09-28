@@ -36,7 +36,7 @@ Copy any username or password to the clipboard with one tap, then paste it into 
 - No analytics SDK
 - No crash reporters that send data
 - No advertising
-- No third-party libraries that make network calls
+- No analytics or advertising SDKs
 - GDPR compliant with full documentation
 - Right to erasure built into settings
 

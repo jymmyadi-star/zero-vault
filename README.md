@@ -9,9 +9,9 @@
 *   **Zero-Knowledge Architecture:** Your Master Password/PIN never leaves the device. All data is encrypted locally using `XChaCha20-Poly1305` before syncing.
 *   **GPU-Resistant KDF:** Master keys are derived using `Argon2id` (128 MB / 6 passes) via native bindings, offering state-of-the-art memory-hard protection against brute-force and ASIC attacks.
 *   **Offline-First & Local Persistence:** Lightning-fast offline access via expo-sqlite + Drizzle ORM (Mobile) with lazy-loading capabilities.
-*   **Sovereign Sync:** Hybrid Logical Clocks (HLC), background polling, and a Mutex Queue Engine handle conflict-free, concurrent synchronization across all your devices without data loss.
+*   **Sovereign Sync:** Hybrid Logical Clocks (HLC), background polling, and a serialized sync backlog handle conflict-free, concurrent synchronization across all your devices without data loss.
 *   **Avant-Garde UI:** "Spatial Liquid Glass" design language featuring deep ambient lighting, micro-animations, and fluid transitions.
-*   **Auto-Lock & Memory Purge:** Advanced lifecycle tracking ensures plaintext memory is zeroed out (`SecureBuffer.dispose()`) and the vault is locked when the app goes to the background. Also features OS-level screenshot prevention in the App Switcher.
+*   **Auto-Lock & Memory Purge:** Advanced lifecycle tracking ensures plaintext memory is zeroed out (`SecureBuffer.dispose()`) and the vault is locked when the app goes to the background.
 *   **Browser Extension:** Native autofill capabilities strictly guarded against phishing by validating DNS boundaries.
 *   **Data Portability:** Seamlessly import and export your vault to/from Bitwarden, 1Password, Chrome, or generic CSVs.
 
@@ -58,7 +58,7 @@ Socler takes no shortcuts when it comes to cryptography:
 If you wish to use the synchronization engine, you must configure a Supabase instance:
 1. Copy `.env.example` to `.env`.
 2. Add your `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
-3. Apply the database migrations found in the `/supabase` folder to your instance.
+3. Set up the Supabase backend: deploy the Edge Functions (`auth-signin`, `sync-push`, `sync-pull`, `vault-seed`) and create the required tables with RLS policies. The endpoint mapping lives in `lib/sync/api-client.ts`.
 
 ## 📦 Production Build (Android)
 Socler uses Expo Application Services (EAS) for seamless cloud builds.
