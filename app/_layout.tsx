@@ -1,10 +1,11 @@
 import 'react-native-get-random-values';
 import React, { useEffect, useState } from 'react';
-import { AppState, type AppStateStatus, StyleSheet, Text, View } from 'react-native';
+import { AppState, type AppStateStatus, Platform, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemeProvider, DarkTheme } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 import { DatabaseV2Provider } from '../lib/db/database-provider-v2';
 import { useVaultStore } from '../lib/store/vault-store';
 import { useAutoLock, resetActivityTimer } from '../lib/hooks/useAutoLock';
@@ -64,6 +65,19 @@ export default function RootLayout() {
   const vaultKeyHex = useVaultStore((s) => s.vaultKeyHex);
 
   useAutoLock();
+
+  // True immersive mode: hide the Android navigation bar; reveal on swipe.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const apply = async () => {
+      try {
+        await NavigationBar.setButtonStyleAsync('light');
+        await NavigationBar.setVisibilityAsync('hidden');
+        await NavigationBar.setBehaviorAsync('overlay-swipe');
+      } catch {}
+    };
+    apply();
+  }, []);
 
   const transparentContent = { contentStyle: { backgroundColor: 'transparent' } };
 
