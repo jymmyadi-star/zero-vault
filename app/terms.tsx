@@ -111,24 +111,18 @@ export default function TermsScreen() {
 
         {/* CHECKBOXES */}
         <TouchableOpacity style={styles.checkRow} onPress={() => { hapticTouch(); setTick1(!tick1); }} activeOpacity={0.7}>
-          <View style={[styles.checkbox, tick1 && styles.checkboxOn]}>
-            {tick1 && <Ionicons name="checkmark" size={12} color="#020204" />}
-          </View>
-          <Text style={styles.checkLabel}>I have read and agree to the Terms of Use.</Text>
+          <Ionicons name={tick1 ? "checkbox" : "square-outline"} size={22} color={tick1 ? "#00F0FF" : "rgba(255,255,255,0.35)"} />
+          <Text style={styles.checkLabel}>I have read and agree to the Terms of Use and Privacy Policy (US &amp; EU).</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.checkRow} onPress={() => { hapticTouch(); setTick2(!tick2); }} activeOpacity={0.7}>
-          <View style={[styles.checkbox, tick2 && styles.checkboxOn]}>
-            {tick2 && <Ionicons name="checkmark" size={12} color="#020204" />}
-          </View>
-          <Text style={styles.checkLabel}>I understand that if I lose my Master PIN and recovery phrase, my data is PERMANENTLY unrecoverable — Socler cannot reset or recover it.</Text>
+          <Ionicons name={tick2 ? "checkbox" : "square-outline"} size={22} color={tick2 ? "#00F0FF" : "rgba(255,255,255,0.35)"} />
+          <Text style={styles.checkLabel}>I understand that Socler uses a Zero-Knowledge architecture. If I lose my Master PIN or Recovery Phrase, my data is permanently lost, and Socler cannot recover it under any circumstances.</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.checkRow} onPress={() => { hapticTouch(); setTick3(!tick3); }} activeOpacity={0.7}>
-          <View style={[styles.checkbox, tick3 && styles.checkboxOn]}>
-            {tick3 && <Ionicons name="checkmark" size={12} color="#020204" />}
-          </View>
-          <Text style={styles.checkLabel}>I accept the Privacy Policy and understand my GDPR rights.</Text>
+          <Ionicons name={tick3 ? "checkbox" : "square-outline"} size={22} color={tick3 ? "#00F0FF" : "rgba(255,255,255,0.35)"} />
+          <Text style={styles.checkLabel}>I agree to use the application at my own risk (&quot;As-Is&quot;), and the developers bear no legal or financial responsibility for any potential data loss.</Text>
         </TouchableOpacity>
       </ScrollView>
 
@@ -144,7 +138,7 @@ export default function TermsScreen() {
               colors={all ? ['#00F0FF', '#0072FF'] : ['rgba(255,255,255,0.03)', 'rgba(255,255,255,0.03)']}
               style={styles.acceptGradient}
             >
-              <Text style={[styles.acceptText, !all && { color: '#52525b' }]}>INITIALIZE ENCLAVE_</Text>
+              <Text style={[styles.acceptText, !all && { color: '#52525b' }]}>I UNDERSTAND AND ACCEPT</Text>
             </LinearGradient>
           </TouchableOpacity>
         )}
@@ -201,11 +195,6 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: 'rgba(255,255,255,0.03)', marginVertical: 8 },
   checkRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10 },
-  checkbox: {
-    width: 22, height: 22, borderRadius: 6, borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center',
-  },
-  checkboxOn: { backgroundColor: '#00F0FF', borderColor: '#00F0FF' },
   checkLabel: { fontSize: 13, color: '#D4D4D8', flex: 1, lineHeight: 18 },
   footer: { paddingHorizontal: 24, paddingBottom: 40, gap: 10 },
   acceptBtn: { borderRadius: 16, overflow: 'hidden' },
