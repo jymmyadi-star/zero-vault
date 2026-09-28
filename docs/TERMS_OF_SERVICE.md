@@ -31,7 +31,7 @@ Socler is a **zero-knowledge encrypted credential manager and digital vault**. I
 
 ## 3. Zero-Knowledge Architecture — CRITICAL
 
-Socler employs **client-side encryption** using XChaCha20-Poly1305 with keys derived via Argon2id from your PIN.
+Socler employs **client-side encryption** using XChaCha20-Poly1305. Your **Master Key** is derived locally from your PIN via Argon2id and **never leaves your device**; all vault, cipher, and signing sub-keys are derived from it on-device.
 
 **YOU ACKNOWLEDGE AND AGREE THAT:**
 

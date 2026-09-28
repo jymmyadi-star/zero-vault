@@ -53,17 +53,17 @@ export default function PrivacyPolicyScreen() {
         </Section>
 
         <Section title="[ 03 ] DATA WE PROCESS">
-          <Text style={styles.body}>Local (on-device): Encrypted passwords, seed phrases, and secure notes with metadata (titles, folders, icons). All data is encrypted with XChaCha20-Poly1305 using keys derived from your Master PIN via Argon2id.</Text>
+          <Text style={styles.body}>Local (on-device): Encrypted passwords, seed phrases, and secure notes with metadata (titles, folders, icons). All data is encrypted with XChaCha20-Poly1305 using a Master Key that is derived from your PIN via Argon2id and never leaves your device.</Text>
           <View style={styles.warningStrip}>
             <Ionicons name="shield-checkmark" size={14} color="#00F0FF" />
-            <Text style={styles.highlightText}>ZERO-KNOWLEDGE: We have NO access to your plaintext data, Master PIN, or decryption keys. They exist only on your device.</Text>
+            <Text style={styles.highlightText}>ZERO-KNOWLEDGE: We have NO access to your plaintext data, Master Key, PIN, or recovery phrase. They exist only on your device.</Text>
           </View>
           <Text style={styles.body}>Server (Supabase): Encrypted opaque ciphertext blocks. The server cannot decrypt any vault item. Only metadata (anonymous user ID, timestamps) is visible server-side.</Text>
         </Section>
 
         <Section title="[ 04 ] LEGAL BASIS FOR PROCESSING">
           <Text style={styles.body}>Local storage: No legal basis required (local processing only).</Text>
-          <Text style={styles.body}>Cloud sync: GDPR Art. 6(1)(a) â€” Consent (you manually enable sync).</Text>
+          <Text style={styles.body}>Cloud sync: GDPR Art. 6(1)(a) — Consent (you manually enable sync).</Text>
           <Text style={styles.body}>Identity upgrade: GDPR Art. 6(1)(b) â€” Contractual necessity.</Text>
           <Text style={styles.body}>Consent records: GDPR Art. 6(1)(c) â€” Legal obligation.</Text>
           <Text style={styles.body}>Audit logging: GDPR Art. 6(1)(f) â€” Legitimate interests.</Text>
@@ -84,7 +84,7 @@ export default function PrivacyPolicyScreen() {
         <Section title="[ 08 ] YOUR GDPR RIGHTS">
           <Text style={styles.body}>Under GDPR, you have the following rights:</Text>
           {GDPR.DATA_SUBJECT_RIGHTS.map((r) => (
-            <Text key={r.article} style={styles.rightsItem}>Â· {r.article}: {r.right}</Text>
+            <Text key={r.article} style={styles.rightsItem}>· {r.article}: {r.right}</Text>
           ))}
           <Text style={styles.body}>To exercise these rights, contact: privacy@socler.app or dpo@socler.app. Response within 30 days.</Text>
         </Section>
